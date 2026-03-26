@@ -1,22 +1,69 @@
 // wrote definitely by Anna Senpai and not anyone else :3
 // definitely not C learning project ;3
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
+// COLOOOOORS!!! YAAAAY!!!
+#define RESET   "\033[0m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN    "\033[36m"
+#define WHITE   "\033[37m"
+
+// Яркие (bold) версии
+#define BRED    "\033[1;31m"
+#define BGREEN  "\033[1;32m"
+#define BYELLOW "\033[1;33m"
+#define BBLUE   "\033[1;34m"
+#define BMAGENTA "\033[1;35m"
+#define BCYAN   "\033[1;36m"
+#define BWHITE  "\033[1;37m"
 
 void c0redev() {
     for (int i=0; i<101; i++) {
-        char *nyarr[] = {"мя", "няф", "бупь", "мря", "\0"}; // * at start of array's name is required to multiple chars in one slot to work, without * program will fail (expected element length 1, but found 2,3,4,5 etc.)
+        char *nyarr[] = {"мя", "няф", "бупь", "мря", "ня", "\0"}; // * at start of array's name is required to multiple chars in one slot to work, without * program will fail (expected element length 1, but found 2,3,4,5 etc.)
         srand(time(NULL) + clock()); // initializing randomizer's seed with current time in seconds from 1970 + milliseconds
-        int randomizer1488 = rand() % 5; // if we want our range from 0 to 4, we type 5 (bc of arr 0,1,2,3,4)
-        if (randomizer1488 == 4) {
+        int randomizer1488 = rand() % 6; // if we want our range from 0 to 5, we type 6 (bc of arr 0,1,2,3,4,5)
+        if (randomizer1488 == 5) {
             continue;
         }
         printf("%s [%d]\n", nyarr[randomizer1488], randomizer1488);
     }
+}
+
+void unnamedFurry() {
+    int *arr = malloc(1024 * 1024); // starting with 1 MB
+    if (!arr) return;
+    madvise(arr, 1024*1024, MADV_NOHUGEPAGE);
+    printf(YELLOW "Ох пизда твоему компутеру >:3\n");
+    size_t allocated = 0;
+    for (int i=1; i<=500; i++) {
+        size_t newSize = 50 * 1024*1024; // adding 50 MB per cycle
+        void *tmp = realloc(arr, allocated+newSize);
+        if (tmp==NULL) {
+            fprintf(stderr, BRED "\n Бля обшибка ");
+        }
+        arr = tmp;
+        // now we are interacting with all this memory so system can't free this memory or mark it as garbage or anything else idk
+        memset(arr, 0xFF, allocated+newSize);
+        allocated+=newSize;
+        printf("\rЦикл " YELLOW "%4d" RESET " | Выделено: " YELLOW "%6.2f ГБ" RESET " | RSS = " YELLOW "%0.2F ГБ" RESET" (приблизительно)", i, allocated / pow(1024, 3), 0.0); // \r - moving cursor to start of line
+        fflush(stdout); // updating line
+        usleep(100000); // timeout (bc terminal may lag or stick or idk 2.0
+    }
+    printf("\n ну чо, доволен? поигрался? теперь гуляй отсюдова\n");
+    free(arr);
+    exit(0);
 }
 
 int main(int argc, char **argv) {
@@ -24,12 +71,14 @@ int main(int argc, char **argv) {
     bool toggle2 = false;
     bool toggle3 = false;
     bool toggle4 = false;
+    bool toggle5 = false;
 
-    if (argc == 5) {
+    if (argc == 6) {
         toggle1 = (strcmp(argv[1], "1") == 0);
         toggle2 = (strcmp(argv[2], "1") == 0);
         toggle3 = (strcmp(argv[3], "1") == 0);
         toggle4 = (strcmp(argv[4], "1") == 0);
+        toggle5 = (strcmp(argv[5], "1") == 0);
     } else if (argc == 1) {
 
     } else {
@@ -40,6 +89,10 @@ int main(int argc, char **argv) {
     if (toggle4 == true) {
         c0redev();
         return 0;
+    }
+
+    if (toggle5 == true) {
+        unnamedFurry();
     }
 
     // basic print
