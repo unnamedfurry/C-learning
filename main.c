@@ -9,6 +9,10 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <locale.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 // COLOOOOORS!!! YAAAAY!!!
 #define RESET   "\033[0m"
@@ -41,14 +45,63 @@ void c0redev() {
     }
 }
 
+int kbhit(void) {
+    struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+    return select(1, &fds, NULL, NULL, &tv) > 0;
+}
+
+int getch_nonblock(void) {
+    if (!kbhit()) return 0;
+    return getchar();
+}
+
 void unnamedFurry() {
+    printf("\n");
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt=oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     int *arr = malloc(1024 * 1024); // starting with 1 MB
     if (!arr) return;
     madvise(arr, 1024*1024, MADV_NOHUGEPAGE);
-    printf(YELLOW "Ох пизда твоему компутеру >:3\n");
+    printf("Ох пизда твоему компутеру >:3\n");
+    printf("Выбирай шаги в мегабайтах (дефолт 50):\n");
+    printf("\033[s");
+    int step = 50;
+    int dBar = 9;
+    char sBar[21] = "##########----------";
+    while (1) {
+        printf("\033[u");
+        printf("\033[2K\rШаг: " YELLOW "%d МБ" RESET " | <- 5 ->\n", step);
+        printf(YELLOW "\033[2K\r[%s]" RESET, sBar);
+        fflush(stdout);
+        int ch = getchar();
+        if (ch == '\033') {
+            getchar();
+            ch = getchar();
+            if (ch == 'D') {
+                if (step<=5 || dBar<1) continue;
+                step-=5;
+                sBar[dBar] = '-';
+                dBar-=1;
+            }
+            if (ch == 'C') {
+                if (step>=100 || dBar>20) continue;
+                step+=5;
+                sBar[dBar] = '#';
+                dBar+=1;
+            }
+        }
+        if (ch == '\r' || ch == '\n') break;
+    }
+    printf("\n\n");
     size_t allocated = 0;
     for (int i=1; i<=500; i++) {
-        size_t newSize = 50 * 1024*1024; // adding 50 MB per cycle
+        size_t newSize = step * 1024*1024; // adding 50 MB per cycle
         void *tmp = realloc(arr, allocated+newSize);
         if (tmp==NULL) {
             fprintf(stderr, BRED "\n Бля обшибка ");
@@ -57,12 +110,19 @@ void unnamedFurry() {
         // now we are interacting with all this memory so system can't free this memory or mark it as garbage or anything else idk
         memset(arr, 0xFF, allocated+newSize);
         allocated+=newSize;
-        printf("\rЦикл " YELLOW "%4d" RESET " | Выделено: " YELLOW "%6.2f ГБ" RESET " | RSS = " YELLOW "%0.2F ГБ" RESET" (приблизительно)", i, allocated / pow(1024, 3), 0.0); // \r - moving cursor to start of line
+        printf("\033[2K\rЦикл " YELLOW "%4d" RESET " | Выделено: " YELLOW "%6.2f ГБ" RESET " | RSS = " YELLOW "%0.2F ГБ" RESET" (приблизительно)", i, allocated / pow(1024, 3), 0.0); // \r - moving cursor to start of line
         fflush(stdout); // updating line
+        int ch2 = getch_nonblock();
+        if (ch2 == 'q' || ch2 == 'Q') {
+            printf(YELLOW "\n\nбля, ладно" RESET);
+            break;
+        }
         usleep(100000); // timeout (bc terminal may lag or stick or idk 2.0
     }
-    printf("\n ну чо, доволен? поигрался? теперь гуляй отсюдова\n");
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    printf("\nну чо, доволен? поигрался? теперь гуляй отсюдова\n");
     free(arr);
+    printf("\n");
     exit(0);
 }
 
