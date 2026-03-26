@@ -9,6 +9,10 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <locale.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 // COLOOOOORS!!! YAAAAY!!!
 #define RESET   "\033[0m"
@@ -42,13 +46,52 @@ void c0redev() {
 }
 
 void unnamedFurry() {
+    printf("\n");
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt=oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     int *arr = malloc(1024 * 1024); // starting with 1 MB
     if (!arr) return;
     madvise(arr, 1024*1024, MADV_NOHUGEPAGE);
-    printf(YELLOW "Ох пизда твоему компутеру >:3\n");
+    printf("Ох пизда твоему компутеру >:3\n");
+    printf("Выбирай шаги в мегабайтах (дефолт 50):\n");
+    printf("\033[s");
+    int step = 50;
+    int dBar = 10;
+    char sBar[20] = "##########---------";
+    printf("Шаг: " YELLOW "%d МБ" RESET " | <- 5 ->\n", step);
+    printf(YELLOW "[%s]" RESET, sBar);
+    while (1) {
+        printf("\033[u");
+        printf("Шаг: " YELLOW "%d МБ" RESET " | <- 5 ->\n", step);
+        printf(YELLOW "[%s]" RESET, sBar);
+        fflush(stdout);
+        int ch = getchar();
+        if (ch == '\033') {
+            getchar();
+            ch = getchar();
+            if (ch == 'D') {
+                if (step<=5 || dBar<=1) continue;
+                step-=5;
+                sBar[dBar] = '-';
+                dBar-=1;
+            }
+            if (ch == 'C') {
+                if (step>=100 || dBar>=20) continue;
+                step+=5;
+                sBar[dBar] = '#';
+                dBar+=1;
+            }
+        }
+        if (ch == '\r' || ch == '\n') break;
+    }
+    printf("\n");
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     size_t allocated = 0;
     for (int i=1; i<=500; i++) {
-        size_t newSize = 50 * 1024*1024; // adding 50 MB per cycle
+        size_t newSize = step * 1024*1024; // adding 50 MB per cycle
         void *tmp = realloc(arr, allocated+newSize);
         if (tmp==NULL) {
             fprintf(stderr, BRED "\n Бля обшибка ");
@@ -63,6 +106,7 @@ void unnamedFurry() {
     }
     printf("\n ну чо, доволен? поигрался? теперь гуляй отсюдова\n");
     free(arr);
+    printf("\n");
     exit(0);
 }
 
