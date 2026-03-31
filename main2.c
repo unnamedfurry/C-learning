@@ -40,7 +40,12 @@ void game_pingpong() {
 
 }
 
+typedef struct { int x; int y; } Point;
+#define MAX_LENGTH 400
 void game_snake() {
+    srand(time(NULL) + clock());
+    Point snake[MAX_LENGTH];
+    int snake_length = 3;
     int width = 40;
     int height = 40;
     int appleX = 0;
@@ -49,31 +54,51 @@ void game_snake() {
     bool eatenApple = false;
     int score = 0;
     bool init = false;
-    //               y   x
-    int snake_coords[20][20];
-    int sX = 0;
-    int sY = 0;
     int direction = 0;
+    bool gameover = false;
+    int stepper = 0;
     while (!WindowShouldClose()) {
-        Vector2 square_position = {235,50};
         if (init!=true) {
-            for (int y=0; y<=19; y++) {
-                for (int x=0; x<=19; x++) {
-                    snake_coords[y][x] = 0;
-                }
+            int x = rand()%19;
+            int y = rand()%19;
+            int snake_direction = rand()%4;
+            snake[0].x = x;
+            snake[0].y = y;
+            switch (snake_direction) {
+                case 0:
+                    snake[1].x = x+1;
+                    snake[1].y = y;
+                    snake[2].x = x+2;
+                    snake[2].y = y;
+                    init=true;
+                    continue;
+                case 1:
+                    snake[1].x = x-1;
+                    snake[1].y = y;
+                    snake[2].x = x-2;
+                    snake[2].y = y;
+                    init=true;
+                    continue;
+                case 2:
+                    snake[1].x = x;
+                    snake[1].y = y+1;
+                    snake[2].x = x;
+                    snake[2].y = y+2;
+                    init=true;
+                    continue;
+                case 3:
+                    snake[1].x = x;
+                    snake[1].y = y-1;
+                    snake[2].x = x;
+                    snake[2].y = y-2;
+                    init=true;
+                    continue;
             }
-            srand(time(NULL) + clock());
-            int i = rand()%19;
-            srand(time(NULL) + clock());
-            int j = rand()%19;
-            snake_coords[i][j] = i*j%2==0?1:0 , j*i%2==0?1:0;
             init=true;
         }
         if (drawnApple==false||eatenApple==true) {
-            srand(time(NULL) + clock());
-            appleX = rand()%20 * width + 255;
-            srand(time(NULL) + clock());
-            appleY = rand()%20 * height + 70;
+            appleX = rand()%19;
+            appleY = rand()%19;
             drawnApple=true;
             eatenApple=false;
         }
@@ -81,8 +106,7 @@ void game_snake() {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        DrawText(TextFormat("Score: %d", score), 10, 10, 26, WHITE);
-        DrawRectangleLines(235, 50, 801, 801, WHITE);
+        Vector2 square_position = {235,50};
         for (int y=0; y<=19; y++) {
             for (int x=0; x<=19; x++) {
                 DrawRectangle(square_position.x, square_position.y, width, height, x%2==y%2 ? DARKGRAY : GRAY);
@@ -92,38 +116,59 @@ void game_snake() {
             square_position.x=235;
         }
 
-        for (int y=0; y<=19; y++) {
-            for (int x=0; x<=19; x++) {
-                if (snake_coords[y][x] == 0) {} else {
-                    sX = width*x+235;
-                    sY = height*y+50;
-                    DrawRectangle(sX, sY, 40, 40, BLUE);
-                    if (appleX-255 == sX-235 && appleY-70 == sY-50) {
-                        eatenApple=true;
-                        score+=10;
-                    }
+        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
+        DrawRectangleLines(235, 50, 801, 801, WHITE);
+
+        DrawCircle(appleX*width+255, appleY*height+70, 20, RED);
+
+        int last_pos_X = snake[snake_length-1].x;
+        int last_pos_Y = snake[snake_length-1].y;
+        for (int i=0; i<snake_length; i++) {
+            if (snake[i].x <= -1 || snake[i].x >= 20 || snake[i].y <= -1 || snake[i].y >= 20) {
+                gameover=true;
+                score=0;
+            }
+            DrawRectangle(snake[i].x*width+235, snake[i].y*height+50, width, height, BLUE);
+            if (stepper%15==0) {
+                switch (direction) {
+                    case 1:
+                        snake[i].x+=1;
+                        continue;
+                    case 2:
+                        snake[i].x-=1;
+                        continue;
+                    case 3:
+                        snake[i].y-=1;
+                        continue;
+                    case 4:
+                        snake[i].y+=1;
+                        continue;
+                    case 0:
+                        continue;
                 }
             }
         }
-        DrawCircle(appleX, appleY, 20, RED);
+        stepper++;
 
-        if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) direction=1;
-        if (IsKeyDown(KEY_LEFT)  || IsKeyDown(KEY_A)) direction=2;
-        if (IsKeyDown(KEY_UP)    || IsKeyDown(KEY_W)) direction=3;
-        if (IsKeyDown(KEY_DOWN)  || IsKeyDown(KEY_S)) direction=4;
-        switch (direction) {
-            case 1:
-                sY+=40;
-                continue;
-            case 2:
-                sY-=40;
-                continue;
-            case 3:
-                sX-=40;
-                continue;
-            case 4:
-                sX+=40;
-                continue;
+        if (snake[0].x == appleX && snake[0].y == appleY) eatenApple=true;
+        if (eatenApple==true) {
+            snake_length++;
+            snake[snake_length-1].x = last_pos_X;
+            snake[snake_length-1].y = last_pos_Y;
+            score+=10;
+        }
+        if (gameover==true) {
+            direction=0;
+            Font dFont = GetFontDefault();
+            Vector2 tMeasure = MeasureTextEx(dFont, "Game over", 60, 2.0f);
+            int tX = (1200 - tMeasure.x) / 2;
+            int tY = (900 - tMeasure.y) / 2;
+            DrawText("Game over", tX, tY, 60, RED);
+        } else {
+            if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) && direction != 2) direction=1;
+            if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A) && direction != 1) direction=2;
+            if (IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W) && direction != 4) direction=3;
+            if (IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S) && direction != 3) direction=4;
         }
 
         EndDrawing();
@@ -133,6 +178,7 @@ void game_snake() {
 int main(void) {
     int wWidth = 1200;
     int wHeight = 900;
+    SetConfigFlags(FLAG_VSYNC_HINT);
     InitWindow(wWidth, wHeight, "Games 1.0");
     SetTargetFPS(60);
     Font dFont = GetFontDefault();
