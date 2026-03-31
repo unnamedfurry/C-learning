@@ -121,42 +121,42 @@ void game_snake() {
 
         DrawCircle(appleX*width+255, appleY*height+70, 20, RED);
 
-        int last_pos_X = snake[snake_length-1].x;
-        int last_pos_Y = snake[snake_length-1].y;
+        if (stepper%15==0) {
+            int last_pos_X = snake[snake_length-1].x;
+            int last_pos_Y = snake[snake_length-1].y;
+
+            if (direction!=0) {
+                for (int i=snake_length-1; i>0; i--) {
+                    snake[i] = snake[i-1];
+                }
+            }
+
+            switch (direction) {
+                case 1: snake[0].x+=1; break;
+                case 2: snake[0].x-=1; break;
+                case 3: snake[0].y-=1; break;
+                case 4: snake[0].y+=1; break;
+                case 0: break;
+            }
+
+            if (snake[0].x == appleX && snake[0].y == appleY) eatenApple=true;
+            if (eatenApple==true) {
+                snake_length++;
+                snake[snake_length-1].x = last_pos_X;
+                snake[snake_length-1].y = last_pos_Y;
+                score+=10;
+            }
+        }
+        stepper++;
+
         for (int i=0; i<snake_length; i++) {
             if (snake[i].x <= -1 || snake[i].x >= 20 || snake[i].y <= -1 || snake[i].y >= 20) {
                 gameover=true;
                 score=0;
             }
             DrawRectangle(snake[i].x*width+235, snake[i].y*height+50, width, height, BLUE);
-            if (stepper%15==0) {
-                switch (direction) {
-                    case 1:
-                        snake[i].x+=1;
-                        continue;
-                    case 2:
-                        snake[i].x-=1;
-                        continue;
-                    case 3:
-                        snake[i].y-=1;
-                        continue;
-                    case 4:
-                        snake[i].y+=1;
-                        continue;
-                    case 0:
-                        continue;
-                }
-            }
         }
-        stepper++;
 
-        if (snake[0].x == appleX && snake[0].y == appleY) eatenApple=true;
-        if (eatenApple==true) {
-            snake_length++;
-            snake[snake_length-1].x = last_pos_X;
-            snake[snake_length-1].y = last_pos_Y;
-            score+=10;
-        }
         if (gameover==true) {
             direction=0;
             Font dFont = GetFontDefault();
