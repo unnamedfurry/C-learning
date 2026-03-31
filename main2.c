@@ -128,6 +128,9 @@ void game_snake() {
             if (direction!=0) {
                 for (int i=snake_length-1; i>0; i--) {
                     snake[i] = snake[i-1];
+                    if (snake[0].x == snake[i+1].x && snake[0].y == snake[i+1].y) {
+                        gameover=true;
+                    }
                 }
             }
 
@@ -154,7 +157,7 @@ void game_snake() {
                 gameover=true;
                 score=0;
             }
-            DrawRectangle(snake[i].x*width+235, snake[i].y*height+50, width, height, BLUE);
+            DrawRectangle(snake[i].x*width+235, snake[i].y*height+50, width, height, i==0 ? BLUE : DARKBLUE);
         }
 
         if (gameover==true) {
@@ -165,10 +168,10 @@ void game_snake() {
             int tY = (900 - tMeasure.y) / 2;
             DrawText("Game over", tX, tY, 60, RED);
         } else {
-            if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) && direction != 2) direction=1;
-            if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A) && direction != 1) direction=2;
-            if (IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W) && direction != 4) direction=3;
-            if (IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S) && direction != 3) direction=4;
+            if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && direction != 2) direction = 1;
+            if ((IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) && direction != 1) direction = 2;
+            if ((IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W)) && direction != 4) direction = 3;
+            if ((IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S)) && direction != 3) direction = 4;
         }
 
         EndDrawing();
