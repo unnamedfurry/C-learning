@@ -1,6 +1,7 @@
 //
 // Created by unnamedfurry on 3/29/26.
 //
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,8 +37,47 @@ int main_old(void) {
     return 0;
 }
 
+#define PI M_PI
+#define DEG_TO_RAD(deg) ((deg) * PI / 180.0f)
+#define RAD_TO_DEG(rad) ((rad) * 180.0f / PI)
+typedef struct { float x; float y; float angle; } Ball;
 void game_pingpong() {
+    Ball ball;
+    int player_plate_x = 310;
+    int bot_plate_x = 310;
+    int direction = 0;
+    ball.x = 1200.0f/2;
+    ball.y = 900.0f/2;
+    ball.angle=90;
+    while (!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(BLACK);
 
+        DrawRectangleLines(215, 50, 801, 801, WHITE);
+        DrawRectangle(bot_plate_x+215, 70, 160, 10, WHITE);
+        DrawRectangle(player_plate_x+215, 821, 160, 10, WHITE);
+        DrawCircle(ball.x, ball.y, 6, WHITE);
+
+        switch (direction) {
+            case 1:
+                if (player_plate_x<639) player_plate_x+=3;
+                break;
+            case 2:
+                if (player_plate_x>0) player_plate_x-=3;
+                break;
+        }
+
+        float rad_angle = DEG_TO_RAD(ball.angle);
+        ball.x += cos(rad_angle) * 2;
+        ball.y += sin(rad_angle) * 2;
+
+
+
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) direction = 1;
+        if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) direction = 2;
+
+        EndDrawing();
+    }
 }
 
 typedef struct { int x; int y; } Point;
