@@ -43,27 +43,30 @@ int main_old(void) {
 typedef struct { float x; float y; float angle; } Ball;
 void game_pingpong() {
     Ball ball;
-    int player_plate_x = 310;
-    int bot_plate_x = 310;
+    int player_plate_x = 525;
+    int bot_plate_x = 525;
     int direction = 0;
     ball.x = 1200.0f/2;
     ball.y = 900.0f/2;
     ball.angle=90;
+    bool gameover = false;
+    int score = 0;
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
 
         DrawRectangleLines(215, 50, 801, 801, WHITE);
-        DrawRectangle(bot_plate_x+215, 70, 160, 10, WHITE);
-        DrawRectangle(player_plate_x+215, 821, 160, 10, WHITE);
-        DrawCircle(ball.x, ball.y, 6, WHITE);
+        DrawRectangle(bot_plate_x, 70, 160, 10, WHITE);
+        DrawRectangle(player_plate_x, 821, 160, 10, WHITE);
+        DrawCircle((int)ball.x, (int)ball.y, 6, WHITE);
+        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
 
         switch (direction) {
             case 1:
-                if (player_plate_x<639) player_plate_x+=3;
+                if (player_plate_x<854) player_plate_x+=3;
                 break;
             case 2:
-                if (player_plate_x>0) player_plate_x-=3;
+                if (player_plate_x>215) player_plate_x-=3;
                 break;
         }
 
@@ -71,10 +74,46 @@ void game_pingpong() {
         ball.x += cos(rad_angle) * 2;
         ball.y += sin(rad_angle) * 2;
 
+        if ((int)ball.y >= 820 && (int)ball.y <= 840 && (int)ball.x >= player_plate_x && (int)ball.x <= player_plate_x+160) {
+            float center_distance = ball.x - (float)player_plate_x+165.0f;
+            float normalized_range = center_distance / (160/2.0f);
+            float max_bounce_angle = 60.0f;
+            float bounce_angle_deg = normalized_range * max_bounce_angle;
 
+            score+=10;
+            ball.angle += bounce_angle_deg;
+        }
+        if ((int)ball.y >= 70 && (int)ball.y <= 80 && (int)ball.x >= bot_plate_x && (int)ball.x <= bot_plate_x+160) {
+            float center_distance = ball.x - (float)bot_plate_x+165.0f;
+            float normalized_range = center_distance / (160/2.0f);
+            float max_bounce_angle = 60.0f;
+            float bounce_angle_deg = normalized_range * max_bounce_angle;
+
+            ball.angle += bounce_angle_deg;
+        }
+
+        if (ball.x <= 215 || ball.x >= 1016) ball.angle = ball.angle+90;
+        if (ball.y >= 851) gameover=true;
+
+        //bot_plate_x = (int)ball.x + rand()%160-80;
+        bot_plate_x = (int)ball.x-80;
+        if (bot_plate_x>854) bot_plate_x=854;
+        if (bot_plate_x<215) bot_plate_x=215;
 
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) direction = 1;
         if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) direction = 2;
+
+        if (gameover==true) {
+            Font dFont = GetFontDefault();
+            Vector2 tMeasure = MeasureTextEx(dFont, "Game over", 60, 2.0f);
+            int tX = (1200 - (int)tMeasure.x) / 2;
+            int tY = (900 - (int)tMeasure.y) / 2;
+            DrawText("Game over", tX, tY, 60, RED);
+            direction=0;
+            ball.x = 1200.0f/2;
+            ball.y = 900.0f/2;
+            ball.angle=0;
+        }
 
         EndDrawing();
     }
@@ -204,8 +243,8 @@ void game_snake() {
             direction=0;
             Font dFont = GetFontDefault();
             Vector2 tMeasure = MeasureTextEx(dFont, "Game over", 60, 2.0f);
-            int tX = (1200 - tMeasure.x) / 2;
-            int tY = (900 - tMeasure.y) / 2;
+            int tX = (1200 - (int)tMeasure.x) / 2;
+            int tY = (900 - (int)tMeasure.y) / 2;
             DrawText("Game over", tX, tY, 60, RED);
         } else {
             if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && direction != 2) direction = 1;
