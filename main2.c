@@ -43,38 +43,44 @@ int main_old(void) {
 typedef struct { float x; float y; float angle; } Ball;
 void game_pingpong() {
     Ball ball;
-    int player_plate_x = 525;
-    int bot_plate_x = 525;
+    float player_plate_x = 525.0f;
+    float bot_plate_x = 525.0f;
     int direction = 0;
     ball.x = 1200.0f/2;
     ball.y = 900.0f/2;
     ball.angle=90;
     bool gameover = false;
     int score = 0;
+    bool randomized = false;
+    float bot_range = 0.0f;
+    float bot_target_x = 0.0f;
+    float bot_speed = 1.0f;
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
 
         DrawRectangleLines(215, 50, 801, 801, WHITE);
-        DrawRectangle(bot_plate_x, 70, 160, 10, WHITE);
-        DrawRectangle(player_plate_x, 821, 160, 10, WHITE);
+        DrawRectangle((int)bot_plate_x, 70, 160, 10, WHITE);
+        DrawRectangle((int)player_plate_x, 821, 160, 10, WHITE);
         DrawCircle((int)ball.x, (int)ball.y, 6, WHITE);
         DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
 
         switch (direction) {
             case 1:
                 if (player_plate_x<854) player_plate_x+=3;
+                else direction=2;
                 break;
             case 2:
                 if (player_plate_x>215) player_plate_x-=3;
+                else direction=1;
                 break;
         }
 
         float rad_angle = DEG_TO_RAD(ball.angle);
-        ball.x += cos(rad_angle) * 2;
-        ball.y += sin(rad_angle) * 2;
+        ball.x += (float)cos(rad_angle) * 2.0f;
+        ball.y += (float)sin(rad_angle) * 2.0f;
 
-        if ((int)ball.y >= 820 && (int)ball.y <= 840 && (int)ball.x >= player_plate_x && (int)ball.x <= player_plate_x+160) {
+        if ((int)ball.y >= 820 && (int)ball.y <= 840 && ball.x >= player_plate_x && ball.x <= player_plate_x+160) {
             float center_distance = ball.x - (float)player_plate_x+165.0f;
             float normalized_range = center_distance / (160/2.0f);
             float max_bounce_angle = 60.0f;
@@ -83,7 +89,7 @@ void game_pingpong() {
             score+=10;
             ball.angle += bounce_angle_deg;
         }
-        if ((int)ball.y >= 70 && (int)ball.y <= 80 && (int)ball.x >= bot_plate_x && (int)ball.x <= bot_plate_x+160) {
+        if ((int)ball.y >= 70 && (int)ball.y <= 80 && ball.x >= bot_plate_x && ball.x <= bot_plate_x+160) {
             float center_distance = ball.x - (float)bot_plate_x+165.0f;
             float normalized_range = center_distance / (160/2.0f);
             float max_bounce_angle = 60.0f;
@@ -93,13 +99,30 @@ void game_pingpong() {
         }
 
         if (ball.x <= 215 || ball.x >= 1016) ball.angle = ball.angle+90;
+        if (ball.angle>360) ball.angle = ball.angle-360;
         if (ball.y >= 851) gameover=true;
+        if (ball.y <= 50) {
+            player_plate_x = 525;
+            bot_plate_x = 525;
+            ball.x = 1200.0f/2;
+            ball.y = 900.0f/2;
+            ball.angle=90;
+            score+=50;
+        }
 
-        //bot_plate_x = (int)ball.x + rand()%160-80;
-        bot_plate_x = (int)ball.x-80;
+        if (randomized==false){
+            bot_range = (rand()%160-80)*10;
+            randomized=true;
+        }
+        float target = ball.x - 80 + (bot_range / 10.0f);
+        bot_target_x = bot_target_x + (target - bot_target_x) * 0.1f;
+        if (bot_plate_x < bot_target_x) bot_plate_x+=bot_speed;
+        else if (bot_plate_x > bot_target_x) bot_plate_x-=bot_speed;
+        if (bot_range<0) bot_range++;
+        else if (bot_range>0) bot_range--;
+        else if (bot_range==0) randomized=false;
         if (bot_plate_x>854) bot_plate_x=854;
         if (bot_plate_x<215) bot_plate_x=215;
-
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) direction = 1;
         if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) direction = 2;
 
@@ -125,8 +148,8 @@ void game_snake() {
     srand(time(NULL) + clock());
     Point snake[MAX_LENGTH];
     int snake_length = 3;
-    int width = 40;
-    int height = 40;
+    float width = 40.0f;
+    float height = 40.0f;
     int appleX = 0;
     int appleY = 0;
     bool drawnApple = false;
@@ -185,10 +208,10 @@ void game_snake() {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        Vector2 square_position = {235,50};
+        Vector2 square_position = {235.0f,50.0f};
         for (int y=0; y<=19; y++) {
             for (int x=0; x<=19; x++) {
-                DrawRectangle(square_position.x, square_position.y, width, height, x%2==y%2 ? DARKGRAY : GRAY);
+                DrawRectangle((int)square_position.x, (int)square_position.y, (int)width, (int)height, x%2==y%2 ? DARKGRAY : GRAY);
                 square_position.x+=width;
             }
             square_position.y+=height;
@@ -198,7 +221,7 @@ void game_snake() {
         DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
         DrawRectangleLines(235, 50, 801, 801, WHITE);
 
-        DrawCircle(appleX*width+255, appleY*height+70, 20, RED);
+        DrawCircle(appleX*(int)width+255, appleY*(int)height+70, 20, RED);
 
         if (stepper%15==0) {
             int last_pos_X = snake[snake_length-1].x;
@@ -236,7 +259,7 @@ void game_snake() {
                 gameover=true;
                 score=0;
             }
-            DrawRectangle(snake[i].x*width+235, snake[i].y*height+50, width, height, i==0 ? BLUE : DARKBLUE);
+            DrawRectangle(snake[i].x*(int)width+235, snake[i].y*(int)height+50, (int)width, (int)height, i==0 ? BLUE : DARKBLUE);
         }
 
         if (gameover==true) {
@@ -331,7 +354,7 @@ int main(void) {
             int sSize = 20;
             Vector2 sMeasure = MeasureTextEx(dFont, soon, sSize, 2.0f);
             int sX = (wWidth - (int)sMeasure.x) /2;
-            int sY = wHeight - sMeasure.y;
+            int sY = wHeight - (int)sMeasure.y;
             DrawText(soon, sX, sY, sSize, WHITE);
         }
 
