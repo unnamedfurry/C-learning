@@ -2,12 +2,10 @@
 // Created by unnamedfurry on 3/29/26.
 //
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/select.h>
 #include "raylib.h"
 
 int main_old(void) {
@@ -19,7 +17,7 @@ int main_old(void) {
 
     char text[] = "Boooo!";
     int tSize = 20;
-    int tX = sWidth/2-strlen(text)-tSize;
+    int tX = sWidth/2-(int)strlen(text)-tSize;
     int tY = sHeight/2-tSize/2;
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -37,11 +35,176 @@ int main_old(void) {
     return 0;
 }
 
-#define PI M_PI
-#define DEG_TO_RAD(deg) ((deg) * PI / 180.0f)
-#define RAD_TO_DEG(rad) ((rad) * 180.0f / PI)
+bool ColorEquals(Color a, Color b){
+    return (a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a);
+}
+//                                     y  x
+typedef struct { int x; int y; int map[3][3]; Color color; } Square;
+void game_tetris_old_broken_completely_fucked_up_dont_look_at_this_shit_pls() {
+    Color field[20][20] = {0};
+    Color temp_field[20][20] = {0};
+    srand(time(NULL) + clock());
+    int width = 40;
+    int height = 40;
+    int stepper = 0;
+    bool still = false;
+    Square figures[5];
+    for (int i=0; i<5; i++) {
+        int randomColor = rand()%13+1;
+        Color color = WHITE;
+        switch (randomColor) {
+            case 1: color = YELLOW; break;
+            case 2: color = GOLD; break;
+            case 3: color = PINK; break;
+            case 4: color = RED; break;
+            case 5: color = GREEN; break;
+            case 6: color = LIME; break;
+            case 7: color = SKYBLUE; break;
+            case 8: color = BLUE; break;
+            case 9: color = PURPLE; break;
+            case 10: color = VIOLET; break;
+            case 11: color = BEIGE; break;
+            case 12: color = BROWN; break;
+            case 13: color = MAGENTA; break;
+        }
+        switch (i) {
+            case 0:
+                figures[i].x = rand()%19;
+                figures[i].y = 0;
+                figures[i].map[0][0] = 1;
+                figures[i].map[0][1] = 0;
+                figures[i].map[0][2] = 0;
+                figures[i].map[1][0] = 1;
+                figures[i].map[1][1] = 0;
+                figures[i].map[1][2] = 0;
+                figures[i].map[2][0] = 1;
+                figures[i].map[2][1] = 0;
+                figures[i].map[2][2] = 0;
+                figures[i].color = color;
+                continue;
+            case 1:
+                figures[i].x = rand()%19;
+                figures[i].y = 0;
+                figures[i].map[0][0] = 1;
+                figures[i].map[0][1] = 1;
+                figures[i].map[0][2] = 0;
+                figures[i].map[1][0] = 1;
+                figures[i].map[1][1] = 0;
+                figures[i].map[1][2] = 0;
+                figures[i].map[2][0] = 1;
+                figures[i].map[2][1] = 0;
+                figures[i].map[2][2] = 0;
+                figures[i].color = color;
+                continue;
+            case 2:
+                figures[i].x = rand()%19;
+                figures[i].y = 0;
+                figures[i].map[0][0] = 1;
+                figures[i].map[0][1] = 1;
+                figures[i].map[0][2] = 1;
+                figures[i].map[1][0] = 0;
+                figures[i].map[1][1] = 1;
+                figures[i].map[1][2] = 0;
+                figures[i].map[2][0] = 0;
+                figures[i].map[2][1] = 0;
+                figures[i].map[2][2] = 0;
+                figures[i].color = color;
+                continue;
+            case 3:
+                figures[i].x = rand()%19;
+                figures[i].y = 0;
+                figures[i].map[0][0] = 1;
+                figures[i].map[0][1] = 1;
+                figures[i].map[0][2] = 1;
+                figures[i].map[1][0] = 0;
+                figures[i].map[1][1] = 1;
+                figures[i].map[1][2] = 0;
+                figures[i].map[2][0] = 0;
+                figures[i].map[2][1] = 1;
+                figures[i].map[2][2] = 0;
+                figures[i].color = color;
+                continue;
+            case 4:
+                figures[i].x = rand()%19;
+                figures[i].y = 0;
+                figures[i].map[0][0] = 1;
+                figures[i].map[0][1] = 1;
+                figures[i].map[0][2] = 0;
+                figures[i].map[1][0] = 1;
+                figures[i].map[1][1] = 0;
+                figures[i].map[1][2] = 0;
+                figures[i].map[2][0] = 0;
+                figures[i].map[2][1] = 0;
+                figures[i].map[2][2] = 0;
+                figures[i].color = color;
+                continue;
+        }
+    }
+    int i=rand()%5;
+    while (!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        DrawRectangleLines(215, 50, 801, 801, WHITE);
+
+        int y1 = figures[i].y*height+50;
+        int x1 = figures[i].x*width+215;
+        for (int y=0; y<3; y++) {
+            for (int x=0; x<3; x++) {
+                if (figures[i].map[y][x] == 1) {
+                    DrawRectangle(x1, y1, width, height, figures[i].color);
+                    temp_field[figures[i].y][figures[i].x] = figures[i].color;
+                    switch (figures[i].map[2][x]) {
+                        case 0:
+                            if (figures[i].y+2>=20) still=true;
+                        case 1:
+                            if (figures[i].y+3>=20) still=true;
+                    }
+                }
+                temp_field[figures[i].y][figures[i].x] = BLANK;
+                x1+=40;
+            }
+            x1 = figures[i].x*width+215;
+            y1+=40;
+        }
+        for (int y=0; y<20; y++) {
+            for (int x=0; x<20; x++) {
+                if (!ColorEquals(field[y][x], BLANK)) {
+                    DrawRectangle(x*width+215, y*height+50, width, height, field[y][x]);
+                }
+            }
+        }
+
+        EndDrawing();
+
+        if (stepper%20==0) {
+            if (still==false) {
+                figures[i].y+=1;
+            } else if (still==true) {
+                i = rand()%5;
+                for (int y=0; y<20; y++) {
+                    for (int x=0; x<20; x++) {
+                        field[y][x] = temp_field[y][x];
+                    }
+                }
+                still=false;
+            }
+        }
+        stepper++;
+        memset(temp_field, 0, sizeof(temp_field));
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) figures[i].x+=1;
+        if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) figures[i].x-=1;
+    }
+}
+
+void game_tetris() {
+
+}
+
+#define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0f)
+#define RAD_TO_DEG(rad) ((rad) * 180.0f / M_PI)
 typedef struct { float x; float y; float angle; } Ball;
 void game_pingpong() {
+    srand(time(NULL) + clock());
     Ball ball;
     float player_plate_x = 525.0f;
     float bot_plate_x = 525.0f;
@@ -60,10 +223,10 @@ void game_pingpong() {
         ClearBackground(BLACK);
 
         DrawRectangleLines(215, 50, 801, 801, WHITE);
-        DrawRectangle((int)bot_plate_x, 70, 160, 10, WHITE);
-        DrawRectangle((int)player_plate_x, 821, 160, 10, WHITE);
-        DrawCircle((int)ball.x, (int)ball.y, 6, WHITE);
-        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
+        DrawRectangle((int)bot_plate_x, 70, 160, 10, GREEN);
+        DrawRectangle((int)player_plate_x, 821, 160, 10, BLUE);
+        DrawCircle((int)ball.x, (int)ball.y, 6, RED);
+        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : YELLOW);
 
         switch (direction) {
             case 1:
@@ -81,7 +244,7 @@ void game_pingpong() {
         ball.y += (float)sin(rad_angle) * 2.0f;
 
         if ((int)ball.y >= 820 && (int)ball.y <= 840 && ball.x >= player_plate_x && ball.x <= player_plate_x+160) {
-            float center_distance = ball.x - (float)player_plate_x+165.0f;
+            float center_distance = ball.x - player_plate_x+165.0f;
             float normalized_range = center_distance / (160/2.0f);
             float max_bounce_angle = 60.0f;
             float bounce_angle_deg = normalized_range * max_bounce_angle;
@@ -90,7 +253,7 @@ void game_pingpong() {
             ball.angle += bounce_angle_deg;
         }
         if ((int)ball.y >= 70 && (int)ball.y <= 80 && ball.x >= bot_plate_x && ball.x <= bot_plate_x+160) {
-            float center_distance = ball.x - (float)bot_plate_x+165.0f;
+            float center_distance = ball.x - bot_plate_x+165.0f;
             float normalized_range = center_distance / (160/2.0f);
             float max_bounce_angle = 60.0f;
             float bounce_angle_deg = normalized_range * max_bounce_angle;
@@ -208,20 +371,20 @@ void game_snake() {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        Vector2 square_position = {235.0f,50.0f};
+        Vector2 square_position = {215.0f,50.0f};
         for (int y=0; y<=19; y++) {
             for (int x=0; x<=19; x++) {
                 DrawRectangle((int)square_position.x, (int)square_position.y, (int)width, (int)height, x%2==y%2 ? DARKGRAY : GRAY);
                 square_position.x+=width;
             }
             square_position.y+=height;
-            square_position.x=235;
+            square_position.x=215;
         }
 
-        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
-        DrawRectangleLines(235, 50, 801, 801, WHITE);
+        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : YELLOW);
+        DrawRectangleLines(215, 50, 801, 801, WHITE);
 
-        DrawCircle(appleX*(int)width+255, appleY*(int)height+70, 20, RED);
+        DrawCircle(appleX*(int)width+235, appleY*(int)height+70, 20, RED);
 
         if (stepper%15==0) {
             int last_pos_X = snake[snake_length-1].x;
@@ -229,6 +392,7 @@ void game_snake() {
 
             if (direction!=0) {
                 for (int i=snake_length-1; i>0; i--) {
+                    if (snake[i].x == appleX && snake[i].y == appleY) drawnApple=false;
                     snake[i] = snake[i-1];
                     if (snake[0].x == snake[i+1].x && snake[0].y == snake[i+1].y) {
                         gameover=true;
@@ -255,11 +419,8 @@ void game_snake() {
         stepper++;
 
         for (int i=0; i<snake_length; i++) {
-            if (snake[i].x <= -1 || snake[i].x >= 20 || snake[i].y <= -1 || snake[i].y >= 20) {
-                gameover=true;
-                score=0;
-            }
-            DrawRectangle(snake[i].x*(int)width+235, snake[i].y*(int)height+50, (int)width, (int)height, i==0 ? BLUE : DARKBLUE);
+            if (snake[i].x <= -1 || snake[i].x >= 20 || snake[i].y <= -1 || snake[i].y >= 20) gameover=true;
+            DrawRectangle(snake[i].x*(int)width+215, snake[i].y*(int)height+50, (int)width, (int)height, i==0 ? BLUE : DARKBLUE);
         }
 
         if (gameover==true) {
@@ -294,7 +455,7 @@ int main(void) {
     int g1tSize = 30;
     char g2Text[] = "Snake";
     int g2tSize = 30;
-    char g3Text[] = "Soon...";
+    char g3Text[] = "Tetris";
     int g3tSize = 30;
     int selector = 1;
     bool drawSoon = false;
@@ -321,10 +482,10 @@ int main(void) {
         DrawText(topText, ttX, ttY, ttSize, WHITE);
         DrawText(g1Text, g1tX, g1tY, g1tSize, WHITE);
         DrawText(g2Text, g2tX, g2tY, g2tSize, WHITE);
-        DrawText(g3Text, g3tX, g3tY, g3tSize, GRAY);
+        DrawText(g3Text, g3tX, g3tY, g3tSize, WHITE);
         DrawRectangleLines(g1tX-15, g1tY-15, 180, 60, selector==1 ? GREEN : WHITE);
         DrawRectangleLines(g2tX-45, g2tY-15, 180, 60, selector==2 ? GREEN : WHITE);
-        DrawRectangleLines(g3tX-45, g3tY-15, 180, 60, selector==3 ? RED : GRAY);
+        DrawRectangleLines(g3tX-40, g3tY-15, 180, 60, selector==3 ? GREEN : WHITE);
 
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
             selector+=1;
@@ -345,7 +506,7 @@ int main(void) {
                     game_snake();
                     break;
                 case 3:
-                    drawSoon = true;
+                    //drawSoon = true;
                     break;
             }
         }

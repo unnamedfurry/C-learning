@@ -11,9 +11,9 @@ include_directories(${CURSES_INCLUDE_DIR})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(main main.c)
-add_executable(main2 main2.c)
+add_executable(games games.c)
 
 target_link_libraries(main ${CURSES_LIBRARIES})
-target_include_directories(main2 PRIVATE ${RAYLIB_INCLUDE_DIRS})
-target_link_libraries(main2 PRIVATE raylib GL m pthread dl rt X11)
-target_compile_options(main2 PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(games PRIVATE ${RAYLIB_INCLUDE_DIRS})
+target_link_libraries(games PRIVATE raylib GL m pthread dl rt X11)
+target_compile_options(games PRIVATE -Wall -Wextra -Wpedantic)
