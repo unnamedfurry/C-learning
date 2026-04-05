@@ -35,169 +35,208 @@ int main_old(void) {
     return 0;
 }
 
-bool ColorEquals(Color a, Color b){
+bool ColorEquals(Color a, Color b) {
     return (a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a);
 }
-//                                     y  x
-typedef struct { int x; int y; int map[3][3]; Color color; } Square;
-void game_tetris_old_broken_completely_fucked_up_dont_look_at_this_shit_pls() {
-    Color field[20][20] = {0};
-    Color temp_field[20][20] = {0};
-    srand(time(NULL) + clock());
-    int width = 40;
-    int height = 40;
-    int stepper = 0;
-    bool still = false;
-    Square figures[5];
-    for (int i=0; i<5; i++) {
-        int randomColor = rand()%13+1;
-        Color color = WHITE;
-        switch (randomColor) {
-            case 1: color = YELLOW; break;
-            case 2: color = GOLD; break;
-            case 3: color = PINK; break;
-            case 4: color = RED; break;
-            case 5: color = GREEN; break;
-            case 6: color = LIME; break;
-            case 7: color = SKYBLUE; break;
-            case 8: color = BLUE; break;
-            case 9: color = PURPLE; break;
-            case 10: color = VIOLET; break;
-            case 11: color = BEIGE; break;
-            case 12: color = BROWN; break;
-            case 13: color = MAGENTA; break;
-        }
-        switch (i) {
-            case 0:
-                figures[i].x = rand()%19;
-                figures[i].y = 0;
-                figures[i].map[0][0] = 1;
-                figures[i].map[0][1] = 0;
-                figures[i].map[0][2] = 0;
-                figures[i].map[1][0] = 1;
-                figures[i].map[1][1] = 0;
-                figures[i].map[1][2] = 0;
-                figures[i].map[2][0] = 1;
-                figures[i].map[2][1] = 0;
-                figures[i].map[2][2] = 0;
-                figures[i].color = color;
-                continue;
-            case 1:
-                figures[i].x = rand()%19;
-                figures[i].y = 0;
-                figures[i].map[0][0] = 1;
-                figures[i].map[0][1] = 1;
-                figures[i].map[0][2] = 0;
-                figures[i].map[1][0] = 1;
-                figures[i].map[1][1] = 0;
-                figures[i].map[1][2] = 0;
-                figures[i].map[2][0] = 1;
-                figures[i].map[2][1] = 0;
-                figures[i].map[2][2] = 0;
-                figures[i].color = color;
-                continue;
-            case 2:
-                figures[i].x = rand()%19;
-                figures[i].y = 0;
-                figures[i].map[0][0] = 1;
-                figures[i].map[0][1] = 1;
-                figures[i].map[0][2] = 1;
-                figures[i].map[1][0] = 0;
-                figures[i].map[1][1] = 1;
-                figures[i].map[1][2] = 0;
-                figures[i].map[2][0] = 0;
-                figures[i].map[2][1] = 0;
-                figures[i].map[2][2] = 0;
-                figures[i].color = color;
-                continue;
-            case 3:
-                figures[i].x = rand()%19;
-                figures[i].y = 0;
-                figures[i].map[0][0] = 1;
-                figures[i].map[0][1] = 1;
-                figures[i].map[0][2] = 1;
-                figures[i].map[1][0] = 0;
-                figures[i].map[1][1] = 1;
-                figures[i].map[1][2] = 0;
-                figures[i].map[2][0] = 0;
-                figures[i].map[2][1] = 1;
-                figures[i].map[2][2] = 0;
-                figures[i].color = color;
-                continue;
-            case 4:
-                figures[i].x = rand()%19;
-                figures[i].y = 0;
-                figures[i].map[0][0] = 1;
-                figures[i].map[0][1] = 1;
-                figures[i].map[0][2] = 0;
-                figures[i].map[1][0] = 1;
-                figures[i].map[1][1] = 0;
-                figures[i].map[1][2] = 0;
-                figures[i].map[2][0] = 0;
-                figures[i].map[2][1] = 0;
-                figures[i].map[2][2] = 0;
-                figures[i].color = color;
-                continue;
+typedef enum {
+    TETRO_I,
+    TETRO_O,
+    TETRO_T,
+    TETRO_S,
+    TETRO_Z,
+    TETRO_J,
+    TETRO_L,
+    TETRO_COUNT
+} TetrominoType;
+typedef struct {
+    TetrominoType type;
+    int rotation;
+    int x,y;
+    Color color;
+} Tetromino;
+const int shapes[7][4][4][4] = {
+    { //TETRO_I
+        {{1,0,0,0}, {1,0,0,0}, {1,0,0,0}, {1,0,0,0}}, //0
+        {{1,1,1,1}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}}, //90
+        {{1,0,0,0}, {1,0,0,0}, {1,0,0,0}, {1,0,0,0}}, //180
+        {{1,1,1,1}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}}  //270
+    },
+    { //TETRO_O
+        {{1,1,0,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0}}, //0
+        {{1,1,0,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0}}, //90
+        {{1,1,0,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0}}, //180
+        {{1,1,0,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0}}  //270
+    },
+    { //TETRO_T
+        {{1,1,1,0}, {0,1,0,0}, {0,0,0,0}, {0,0,0,0}}, //0
+        {{0,1,0,0}, {1,1,0,0}, {0,1,0,0}, {0,0,0,0}}, //90
+        {{0,1,0,0}, {1,1,1,0}, {0,0,0,0}, {0,0,0,0}}, //180
+        {{1,0,0,0}, {1,1,0,0}, {1,0,0,0}, {0,0,0,0}}  //270
+    },
+    { //TETRO_S
+        {{0,1,1,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0}}, //0
+        {{1,0,0,0}, {1,1,0,0}, {0,1,0,0}, {0,0,0,0}}, //90
+        {{0,1,1,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0}}, //180
+        {{1,0,0,0}, {1,1,0,0}, {0,1,0,0}, {0,0,0,0}}  //270
+    },
+    { //TETRO_Z
+        {{1,1,0,0}, {0,1,1,0}, {0,0,0,0}, {0,0,0,0}}, //0
+        {{0,1,0,0}, {1,1,0,0}, {1,0,0,0}, {0,0,0,0}}, //90
+        {{1,1,0,0}, {0,1,1,0}, {0,0,0,0}, {0,0,0,0}}, //180
+        {{0,1,0,0}, {1,1,0,0}, {1,0,0,0}, {0,0,0,0}}  //270
+    },
+    { //TETRO_J
+        {{0,1,0,0}, {0,1,0,0}, {1,1,0,0}, {0,0,0,0}}, //0
+        {{1,0,0,0}, {1,1,1,0}, {0,0,0,0}, {0,0,0,0}}, //90
+        {{1,1,0,0}, {1,0,0,0}, {1,0,0,0}, {0,0,0,0}}, //180
+        {{1,1,1,0}, {0,0,1,0}, {0,0,0,0}, {0,0,0,0}}  //270
+    },
+    { //TETRO_L
+        {{1,0,0,0}, {1,0,0,0}, {1,1,0,0}, {0,0,0,0}}, //0
+        {{1,1,1,0}, {1,0,0,0}, {0,0,0,0}, {0,0,0,0}}, //90
+        {{1,1,0,0}, {0,1,0,0}, {0,1,0,0}, {0,0,0,0}}, //180
+        {{0,0,1,0}, {1,1,1,0}, {0,0,0,0}, {0,0,0,0}}  //270
+    }
+};
+Color board[20][10] = {BLANK};
+bool CanPlace (int testX, int testY, int testRotation, Tetromino current) {
+    int (*shape)[4] = shapes[current.type][testRotation];
+    for (int py=0; py<4; py++) {
+        for (int px=0; px<4; px++) {
+            if (shape[py][px] == 0) continue;
+            int boardX = testX+px;
+            int boardY = testY+py;
+            if (boardX<0 || boardX>=10 || boardY>=20) {
+                return false;
+            }
+            if (boardY<0) continue;
+            if (!ColorEquals(board[boardY][boardX], BLANK)) {
+                return false;
+            }
         }
     }
-    int i=rand()%5;
+    return true;
+}
+void game_tetris() {
+    srand(time(NULL) + clock());
+    bool init = false;
+    Tetromino current = {0};
+    int stepper = 0;
+    int score = 0;
+    int hardDrop = 0;
+    bool gameover = false;
     while (!WindowShouldClose()) {
+        if (init==false) {
+            current.type = rand()%7;
+            current.rotation = rand()%4;
+            current.x = 3;
+            current.y = 0;
+            srand(time(NULL) + clock());
+            int randomColor = rand()%6;
+            switch (randomColor) {
+                case 0: current.color = YELLOW; break;
+                case 1: current.color = RED; break;
+                case 2: current.color = GREEN; break;
+                case 3: current.color = BLUE; break;
+                case 4: current.color = VIOLET; break;
+                case 5: current.color = MAGENTA; break;
+            }
+            init=true;
+        }
+        int (*shape)[4] = shapes[current.type][current.rotation];
+
         BeginDrawing();
         ClearBackground(BLACK);
-        DrawRectangleLines(215, 50, 801, 801, WHITE);
+        DrawRectangleLines(399, 50, 401, 801, WHITE);
+        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
 
-        int y1 = figures[i].y*height+50;
-        int x1 = figures[i].x*width+215;
-        for (int y=0; y<3; y++) {
-            for (int x=0; x<3; x++) {
-                if (figures[i].map[y][x] == 1) {
-                    DrawRectangle(x1, y1, width, height, figures[i].color);
-                    temp_field[figures[i].y][figures[i].x] = figures[i].color;
-                    switch (figures[i].map[2][x]) {
-                        case 0:
-                            if (figures[i].y+2>=20) still=true;
-                        case 1:
-                            if (figures[i].y+3>=20) still=true;
-                    }
-                }
-                temp_field[figures[i].y][figures[i].x] = BLANK;
-                x1+=40;
+        for (int i=0; i<4; i++) {
+            for (int j=0; j<4; j++) {
+                if (shape[i][j] != 0) DrawRectangle((current.x+j)*40+399, (current.y+i)*40+50, 40, 40, current.color);
             }
-            x1 = figures[i].x*width+215;
-            y1+=40;
         }
         for (int y=0; y<20; y++) {
-            for (int x=0; x<20; x++) {
-                if (!ColorEquals(field[y][x], BLANK)) {
-                    DrawRectangle(x*width+215, y*height+50, width, height, field[y][x]);
-                }
+            for (int x=0; x<10; x++) {
+                DrawRectangle(x*40+399, y*40+50, 40, 40, board[y][x]);
             }
+        }
+
+        if (gameover==true) {
+            Font dFont = GetFontDefault();
+            Vector2 tMeasure = MeasureTextEx(dFont, "Game over", 60, 2.0f);
+            int tX = (1200 - (int)tMeasure.x) / 2;
+            int tY = (900 - (int)tMeasure.y) / 2;
+            DrawText("Game over", tX, tY, 60, WHITE);
+            current.x=-40;
+            current.y=-40;
         }
 
         EndDrawing();
 
-        if (stepper%20==0) {
-            if (still==false) {
-                figures[i].y+=1;
-            } else if (still==true) {
-                i = rand()%5;
-                for (int y=0; y<20; y++) {
-                    for (int x=0; x<20; x++) {
-                        field[y][x] = temp_field[y][x];
+        for (int i=0; i<10; i++) {
+            if (!ColorEquals(board[0][i], BLANK)) {gameover=true;}
+        }
+        if (stepper%30==0) {
+            if (CanPlace(current.x, current.y+1, current.rotation, current)) {
+                current.y+=1;
+            } else {
+                //Lock piece
+                for (int i=0; i<4; i++) {
+                    for (int j=0; j<4; j++) {
+                        if (shape[i][j] != 0) {
+                            int YY = current.y + i;
+                            int XX = current.x + j;
+                            if (YY >= 0 && YY < 20 && XX >= 0 && XX < 10) {
+                                board[YY][XX] = current.color;
+                            }
+                        }
                     }
                 }
-                still=false;
+                //Clear full lines
+                for (int y = 19; y >= 0; y--) {
+                    bool full = true;
+                    for (int x = 0; x < 10; x++) {
+                        if (ColorEquals(board[y][x], BLANK)) {
+                            full = false;
+                            break;
+                        }
+                    }
+                    if (full) {
+                        for (int yy = y; yy > 0; yy--) {
+                            for (int x = 0; x < 10; x++) {
+                                board[yy][x] = board[yy - 1][x];
+                            }
+                        }
+                        for (int x = 0; x < 10; x++) {
+                            board[0][x] = BLANK;
+                        }
+                        score += 10;
+                        y++;
+                    }
+                }
+                //Spawn new figure
+                init=false;
             }
         }
         stepper++;
-        memset(temp_field, 0, sizeof(temp_field));
-        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) figures[i].x+=1;
-        if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) figures[i].x-=1;
+        if (current.rotation>3) current.rotation=0;
+        if (current.rotation<0) current.rotation=3;
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
+            if (CanPlace(current.x+1, current.y, current.rotation, current)){current.x+=1;}
+        }
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
+            if (CanPlace(current.x-1, current.y, current.rotation, current)){current.x-=1;}
+        }
+        if (IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W)) {
+            if (CanPlace(current.x, current.y, current.rotation+1, current)){current.rotation+=1;}
+        }
+        if (IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S)) {
+            for (int i=0; i<10; i++) {
+                if (CanPlace(current.x, current.y+i, current.rotation, current)) {hardDrop=i;} // почему то не работает, можно будет заменить на rotation-=1
+            }
+        }
+        if (hardDrop!=0) {current.y+=hardDrop; hardDrop=0;}
     }
-}
-
-void game_tetris() {
-
 }
 
 #define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0f)
@@ -226,7 +265,7 @@ void game_pingpong() {
         DrawRectangle((int)bot_plate_x, 70, 160, 10, GREEN);
         DrawRectangle((int)player_plate_x, 821, 160, 10, BLUE);
         DrawCircle((int)ball.x, (int)ball.y, 6, RED);
-        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : YELLOW);
+        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
 
         switch (direction) {
             case 1:
@@ -294,7 +333,7 @@ void game_pingpong() {
             Vector2 tMeasure = MeasureTextEx(dFont, "Game over", 60, 2.0f);
             int tX = (1200 - (int)tMeasure.x) / 2;
             int tY = (900 - (int)tMeasure.y) / 2;
-            DrawText("Game over", tX, tY, 60, RED);
+            DrawText("Game over", tX, tY, 60, WHITE);
             direction=0;
             ball.x = 1200.0f/2;
             ball.y = 900.0f/2;
@@ -381,7 +420,7 @@ void game_snake() {
             square_position.x=215;
         }
 
-        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : YELLOW);
+        DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
         DrawRectangleLines(215, 50, 801, 801, WHITE);
 
         DrawCircle(appleX*(int)width+235, appleY*(int)height+70, 20, RED);
@@ -429,7 +468,7 @@ void game_snake() {
             Vector2 tMeasure = MeasureTextEx(dFont, "Game over", 60, 2.0f);
             int tX = (1200 - (int)tMeasure.x) / 2;
             int tY = (900 - (int)tMeasure.y) / 2;
-            DrawText("Game over", tX, tY, 60, RED);
+            DrawText("Game over", tX, tY, 60, WHITE);
         } else {
             if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && direction != 2) direction = 1;
             if ((IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) && direction != 1) direction = 2;
@@ -507,6 +546,7 @@ int main(void) {
                     break;
                 case 3:
                     //drawSoon = true;
+                    game_tetris();
                     break;
             }
         }
