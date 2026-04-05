@@ -35,6 +35,81 @@ int main_old(void) {
     return 0;
 }
 
+/**
+*  ----------------------------------------------------------------------------------------------------------------------
+*  |    Bits    |    LoadAudioStream()   |   type in SoundCallback   |   value range            |   float translation   |
+*  ----------------------------------------------------------------------------------------------------------------------
+*  |    32      |    (44100, 32, 1)      |   float*                  |   -1.0 ... +1.0          | -                     |
+*  |    16      |    (44100, 16, 1)      |   short*                  |   -32768 ... +32767      | sample * 32767        |
+*  |    8       |    (22050, 8, 1)       |   unsigned char*          |   0 ... 255              | 128 + sample * 127    |
+*  ----------------------------------------------------------------------------------------------------------------------
+**/
+
+// global parameters
+//float phase = 0.0f;          // using phase instead of time
+//float frequency = 1700.0f;    // start frequency
+//float volume = 0.3f;         // volume 0.0 - 1.0
+//float duration = 0.02f;
+typedef struct {
+    float phase;
+    float frequency;
+    float volume;
+    float duration;
+} SoundGenerator;
+SoundGenerator gen = {0};
+AudioStream stream = {0};
+void PlaySfx(SoundGenerator *gen, float freq, float vol, float dur){
+    gen->frequency = freq;
+    gen->volume    = vol;
+    gen->duration  = dur;
+    gen->phase     = 0.0f;
+}
+void SoundCallback32(void *buffer, unsigned int frames){
+    float *out = (float*)buffer;
+    for (unsigned int i = 0; i < frames; i++){
+        if (gen.duration <= 0.0f) {
+            out[i] = 0;
+            continue;
+        }
+        out[i] = sinf(2.0f * PI * gen.frequency * gen.phase) * gen.volume;
+        gen.phase += 1.0f / 44100.0f;
+        gen.duration -= 1.0f / 44100.0f;
+    }
+}
+void SoundCallback16(void *buffer, unsigned int frames){
+    short *out = (short *)buffer;
+    for (unsigned int i = 0; i < frames; i++){
+        if (gen.duration <= 0.0f) {
+            out[i] = 0;
+            continue;
+        }
+        float envelope = 1.0f;
+        if (gen.duration < 0.03f) {
+            envelope = gen.duration / 0.03f;
+        }
+        else if (gen.phase < 0.02f) {
+            envelope = gen.phase / 0.02f;
+        }
+        float sample = sinf(2.0f * PI * gen.frequency * gen.phase) * gen.volume * envelope;
+        out[i] = (short)(sample * 32767.0f);
+        gen.phase += 1.0f / 44100.0f;
+        gen.duration -= 1.0f / 44100.0f;
+    }
+}
+void SoundCallback8(void *buffer, unsigned int frames) {
+    unsigned char *out = (unsigned char*)buffer;
+    for (unsigned int i = 0; i < frames; i++){
+        if (gen.duration <= 0.0f) {
+            out[i] = 0;
+            continue;
+        }
+        float sample = sinf(2.0f * PI * gen.frequency * gen.phase) * gen.volume;
+        out[i] = (unsigned char)(128.0f + sample * 127.0f);
+        gen.phase += 1.0f / 22050.0f;
+        gen.duration -= 1.0f / 22050.0f;
+    }
+}
+
 bool ColorEquals(Color a, Color b) {
     return (a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a);
 }
@@ -125,6 +200,7 @@ void game_tetris() {
     int score = 0;
     int hardDrop = 0;
     bool gameover = false;
+    bool playedSound = false;
     while (!WindowShouldClose()) {
         if (init==false) {
             current.type = rand()%7;
@@ -169,6 +245,7 @@ void game_tetris() {
             DrawText("Game over", tX, tY, 60, WHITE);
             current.x=-40;
             current.y=-40;
+            if (playedSound==false){ PlaySfx(&gen, 680, 0.6f, 0.3f); playedSound=true; }
         }
 
         EndDrawing();
@@ -188,6 +265,7 @@ void game_tetris() {
                             int XX = current.x + j;
                             if (YY >= 0 && YY < 20 && XX >= 0 && XX < 10) {
                                 board[YY][XX] = current.color;
+                                PlaySfx(&gen, 289, 1.0f, 0.1f);
                             }
                         }
                     }
@@ -222,17 +300,29 @@ void game_tetris() {
         if (current.rotation>3) current.rotation=0;
         if (current.rotation<0) current.rotation=3;
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
-            if (CanPlace(current.x+1, current.y, current.rotation, current)){current.x+=1;}
+            if (CanPlace(current.x+1, current.y, current.rotation, current)) {
+                current.x+=1;
+                PlaySfx(&gen, 500, 0.4f, 0.03f);
+            }
         }
         if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A)) {
-            if (CanPlace(current.x-1, current.y, current.rotation, current)){current.x-=1;}
+            if (CanPlace(current.x-1, current.y, current.rotation, current)) {
+                current.x-=1;
+                PlaySfx(&gen, 500, 0.4f, 0.03f);
+            }
         }
         if (IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W)) {
-            if (CanPlace(current.x, current.y, current.rotation+1, current)){current.rotation+=1;}
+            if (CanPlace(current.x, current.y, current.rotation+1, current)) {
+                current.rotation+=1;
+                PlaySfx(&gen, 500, 0.4f, 0.03f);
+            }
         }
         if (IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S)) {
             for (int i=0; i<10; i++) {
-                if (CanPlace(current.x, current.y+i, current.rotation, current)) {hardDrop=i;} // почему то не работает, можно будет заменить на rotation-=1
+                if (CanPlace(current.x, current.y+i, current.rotation, current)) {
+                    hardDrop=i;
+                    PlaySfx(&gen, 500, 0.4f, 0.03f);
+                }
             }
         }
         if (hardDrop!=0) {current.y+=hardDrop; hardDrop=0;}
@@ -257,6 +347,7 @@ void game_pingpong() {
     float bot_range = 0.0f;
     float bot_target_x = 0.0f;
     float bot_speed = 1.0f;
+    bool playedSound = false;
     while (!WindowShouldClose()) {
         BeginDrawing();
         ClearBackground(BLACK);
@@ -290,6 +381,7 @@ void game_pingpong() {
 
             score+=10;
             ball.angle += bounce_angle_deg;
+            PlaySfx(&gen, 321, 0.8f, 0.1f);
         }
         if ((int)ball.y >= 70 && (int)ball.y <= 80 && ball.x >= bot_plate_x && ball.x <= bot_plate_x+160) {
             float center_distance = ball.x - bot_plate_x+165.0f;
@@ -298,10 +390,17 @@ void game_pingpong() {
             float bounce_angle_deg = normalized_range * max_bounce_angle;
 
             ball.angle += bounce_angle_deg;
+            PlaySfx(&gen, 321, 0.8f, 0.1f);
         }
 
-        if (ball.x <= 215 || ball.x >= 1016) ball.angle = ball.angle+90;
-        if (ball.angle>360) ball.angle = ball.angle-360;
+        if (ball.x <= 215 || ball.x >= 1016) {
+            ball.angle = ball.angle+90;
+            PlaySfx(&gen, 321, 0.8f, 0.1f);
+        }
+        if (ball.angle>360) {
+            ball.angle = ball.angle-360;
+            PlaySfx(&gen, 321, 0.8f, 0.1f);
+        }
         if (ball.y >= 851) gameover=true;
         if (ball.y <= 50) {
             player_plate_x = 525;
@@ -310,6 +409,7 @@ void game_pingpong() {
             ball.y = 900.0f/2;
             ball.angle=90;
             score+=50;
+            PlaySfx(&gen, 548, 0.6f, 0.1f);
         }
 
         if (randomized==false){
@@ -325,8 +425,14 @@ void game_pingpong() {
         else if (bot_range==0) randomized=false;
         if (bot_plate_x>854) bot_plate_x=854;
         if (bot_plate_x<215) bot_plate_x=215;
-        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) direction = 1;
-        if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) direction = 2;
+        if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
+            direction = 1;
+            PlaySfx(&gen, 500, 0.4f, 0.03f);
+        }
+        if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) {
+            direction = 2;
+            PlaySfx(&gen, 500, 0.4f, 0.03f);
+        }
 
         if (gameover==true) {
             Font dFont = GetFontDefault();
@@ -338,6 +444,7 @@ void game_pingpong() {
             ball.x = 1200.0f/2;
             ball.y = 900.0f/2;
             ball.angle=0;
+            if (playedSound==false){ PlaySfx(&gen, 680, 0.6f, 0.3f); playedSound=true; }
         }
 
         EndDrawing();
@@ -361,6 +468,7 @@ void game_snake() {
     int direction = 0;
     bool gameover = false;
     int stepper = 0;
+    bool playedSound = false;
     while (!WindowShouldClose()) {
         if (init!=true) {
             int x = rand()%19;
@@ -449,6 +557,7 @@ void game_snake() {
 
             if (snake[0].x == appleX && snake[0].y == appleY) eatenApple=true;
             if (eatenApple==true) {
+                PlaySfx(&gen, 300, 0.6f, 0.03f);
                 snake_length++;
                 snake[snake_length-1].x = last_pos_X;
                 snake[snake_length-1].y = last_pos_Y;
@@ -469,11 +578,24 @@ void game_snake() {
             int tX = (1200 - (int)tMeasure.x) / 2;
             int tY = (900 - (int)tMeasure.y) / 2;
             DrawText("Game over", tX, tY, 60, WHITE);
+            if (playedSound==false){ PlaySfx(&gen, 680, 0.6f, 0.3f); playedSound=true; }
         } else {
-            if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && direction != 2) direction = 1;
-            if ((IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) && direction != 1) direction = 2;
-            if ((IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W)) && direction != 4) direction = 3;
-            if ((IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S)) && direction != 3) direction = 4;
+            if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && direction != 2) {
+                direction = 1;
+                PlaySfx(&gen, 500, 0.4f, 0.03f);
+            }
+            if ((IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) && direction != 1) {
+                direction = 2;
+                PlaySfx(&gen, 500, 0.4f, 0.03f);
+            }
+            if ((IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W)) && direction != 4) {
+                direction = 3;
+                PlaySfx(&gen, 500, 0.4f, 0.03f);
+            }
+            if ((IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S)) && direction != 3) {
+                direction = 4;
+                PlaySfx(&gen, 500, 0.4f, 0.03f);
+            }
         }
 
         EndDrawing();
@@ -485,6 +607,7 @@ int main(void) {
     int wHeight = 900;
     SetConfigFlags(FLAG_VSYNC_HINT);
     InitWindow(wWidth, wHeight, "Games 1.0");
+    InitAudioDevice();
     SetTargetFPS(60);
     Font dFont = GetFontDefault();
 
@@ -499,6 +622,9 @@ int main(void) {
     int selector = 1;
     bool drawSoon = false;
 
+    stream = LoadAudioStream(44100, 16, 1);  // sample rate, bit depth, channels
+    SetAudioStreamCallback(stream, SoundCallback16);
+    PlayAudioStream(stream);
     while (!WindowShouldClose()) {
         Vector2 ttMeasure = MeasureTextEx(dFont, topText, (float)ttSize, 2.0f);
         int ttX = (wWidth - (int)ttMeasure.x) / 2.15;
@@ -527,16 +653,19 @@ int main(void) {
         DrawRectangleLines(g3tX-40, g3tY-15, 180, 60, selector==3 ? GREEN : WHITE);
 
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
+            PlaySfx(&gen, 1700, 0.2f, 0.03f);
             selector+=1;
             if (selector>3) selector=1;
             drawSoon=false;
         }
         if (IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) {
+            PlaySfx(&gen, 1700, 0.2f, 0.03f);
             selector-=1;
             if (selector<1) selector=3;
             drawSoon=false;
         }
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            PlaySfx(&gen, 1700, 0.2f, 0.03f);
             switch (selector) {
                 case 1:
                     game_pingpong();
@@ -545,7 +674,6 @@ int main(void) {
                     game_snake();
                     break;
                 case 3:
-                    //drawSoon = true;
                     game_tetris();
                     break;
             }
@@ -563,6 +691,9 @@ int main(void) {
         EndDrawing();
     }
 
+    StopAudioStream(stream);
+    UnloadAudioStream(stream);
+    CloseAudioDevice();
     CloseWindow();
     return 0;
 }
