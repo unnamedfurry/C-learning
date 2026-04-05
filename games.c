@@ -606,7 +606,7 @@ int main(void) {
     int wWidth = 1200;
     int wHeight = 900;
     SetConfigFlags(FLAG_VSYNC_HINT);
-    InitWindow(wWidth, wHeight, "Games 1.0");
+    InitWindow(wWidth, wHeight, "Games 4.0");
     InitAudioDevice();
     SetTargetFPS(60);
     Font dFont = GetFontDefault();
