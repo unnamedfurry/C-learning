@@ -607,9 +607,19 @@ int main(void) {
     int wHeight = 900;
     SetConfigFlags(FLAG_VSYNC_HINT);
     InitWindow(wWidth, wHeight, "Games 4.0");
+    Shader gaussianBlur = LoadShader(0, "gaussian-blur.fs");
     InitAudioDevice();
     SetTargetFPS(60);
     Font dFont = GetFontDefault();
+
+    int resolutionLoc = GetShaderLocation(gaussianBlur, "resolution");
+    int directionLoc = GetShaderLocation(gaussianBlur, "direction");
+    int radiusLoc = GetShaderLocation(gaussianBlur, "blurRadius");
+
+    RenderTexture2D scene = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D bright = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur1 = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur2 = LoadRenderTexture(wWidth, wHeight);
 
     char topText[] = "Choose a game:";
     int ttSize = 70;
@@ -643,6 +653,8 @@ int main(void) {
         int g3tY = wHeight*2/3 - (int)g3tMeasure.y/2;
 
         BeginDrawing();
+
+        BeginTextureMode(scene);
         ClearBackground(BLACK);
         DrawText(topText, ttX, ttY, ttSize, WHITE);
         DrawText(g1Text, g1tX, g1tY, g1tSize, WHITE);
@@ -688,9 +700,51 @@ int main(void) {
         }
 
         DrawFPS(10,10);
+        EndTextureMode();
+
+        DrawTexturePro(scene.texture,
+                   (Rectangle){0,0,scene.texture.width, -scene.texture.height},
+                   (Rectangle){0,0,wWidth,wHeight}, (Vector2){0,0}, 0.0f, WHITE);
+
+        // Добавляем свечение (additive)
+        DrawTexturePro(blur2.texture,
+                       (Rectangle){0,0,blur2.texture.width, -blur2.texture.height},
+                       (Rectangle){0,0,wWidth,wHeight}, (Vector2){0,0}, 0.0f, ColorAlpha(WHITE, 1.0f));
+
         EndDrawing();
+
+        bright=scene;
+        float blurRadius=10.0f;
+        BeginTextureMode(blur1);
+            ClearBackground(BLANK);
+            BeginShaderMode(gaussianBlur);
+                SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+                SetShaderValue(gaussianBlur, directionLoc, (float[2]){1.0f, 0.0f}, SHADER_UNIFORM_VEC2);
+                SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+                DrawTexturePro(scene.texture,
+                    (Rectangle){0, 0, scene.texture.width, -scene.texture.height},
+                    (Rectangle){0, 0, wWidth, wHeight},
+                    (Vector2){0,0}, 0.0f, WHITE);
+            EndShaderMode();
+        EndTextureMode();
+
+        BeginTextureMode(blur2);
+            ClearBackground(BLANK);
+            BeginShaderMode(gaussianBlur);
+                SetShaderValue(gaussianBlur, directionLoc, (float[2]){0.0f, 1.0f}, SHADER_UNIFORM_VEC2);
+                DrawTexturePro(blur1.texture,
+                    (Rectangle){0, 0, blur1.texture.width, -blur1.texture.height},
+                    (Rectangle){0, 0, wWidth, wHeight},
+                    (Vector2){0,0}, 0.0f, WHITE);
+            EndShaderMode();
+        EndTextureMode();
     }
 
+    UnloadRenderTexture(scene);
+    UnloadRenderTexture(bright);
+    UnloadRenderTexture(blur1);
+    UnloadRenderTexture(blur2);
+    UnloadShader(gaussianBlur);
     StopAudioStream(stream);
     UnloadAudioStream(stream);
     CloseAudioDevice();
