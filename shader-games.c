@@ -523,7 +523,7 @@ void game_pingpong(void) {
         EndTextureMode();
         EndDrawing();
 
-        float blurRadius=3.8f;
+        float blurRadius=2.8f;
         BeginTextureMode(blur1);
         ClearBackground(BLANK);
         BeginShaderMode(gaussianBlur);
@@ -638,7 +638,7 @@ void game_snake(void) {
            (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, WHITE);
         DrawTexturePro(blur2.texture,
                        (Rectangle){0,0, (float)blur2.texture.width, (float)-blur2.texture.height},
-                       (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, ColorAlpha(WHITE, 0.13f));
+                       (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, ColorAlpha(WHITE, 0.1f));
 
         BeginTextureMode(scene);
         ClearBackground(BLACK);
