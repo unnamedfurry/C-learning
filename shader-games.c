@@ -1,6 +1,7 @@
 //
-// Created by unnamedfurry on 3/29/26.
+// Created by unnamedfurry on 4/7/26.
 //
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -192,7 +193,18 @@ bool CanPlace (int testX, int testY, int testRotation, Tetromino current) {
     }
     return true;
 }
-void game_tetris() {
+void game_tetris(void) {
+    int wWidth = 1200;
+    int wHeight = 900;
+    Shader gaussianBlur = LoadShader(0, "gaussian-blur.fs");
+    int resolutionLoc = GetShaderLocation(gaussianBlur, "resolution");
+    int directionLoc = GetShaderLocation(gaussianBlur, "direction");
+    int radiusLoc = GetShaderLocation(gaussianBlur, "blurRadius");
+    RenderTexture2D scene = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D bright = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur1 = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur2 = LoadRenderTexture(wWidth, wHeight);
+
     srand(time(NULL) + clock());
     bool init = false;
     Tetromino current = {0};
@@ -222,18 +234,26 @@ void game_tetris() {
         int (*shape)[4] = shapes[current.type][current.rotation];
 
         BeginDrawing();
+        DrawTexturePro(scene.texture,
+           (Rectangle){0,0, (float)scene.texture.width, (float)-scene.texture.height},
+           (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, WHITE);
+        DrawTexturePro(blur2.texture,
+                       (Rectangle){0,0, (float)blur2.texture.width, (float)-blur2.texture.height},
+                       (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, ColorAlpha(WHITE, 0.5f));
+
+        BeginTextureMode(scene);
         ClearBackground(BLACK);
         DrawRectangleLines(399, 50, 401, 801, WHITE);
         DrawText(TextFormat("Score: %d", score), 10, 10, 26, gameover==true ? RED : WHITE);
 
         for (int i=0; i<4; i++) {
             for (int j=0; j<4; j++) {
-                if (shape[i][j] != 0) DrawRectangle((current.x+j)*40+399, (current.y+i)*40+50, 40, 40, current.color);
+                if (shape[i][j] != 0) DrawRectangle((current.x+j)*40+399+1, (current.y+i)*40+50+1, 40-2, 40-2, current.color);
             }
         }
         for (int y=0; y<20; y++) {
             for (int x=0; x<10; x++) {
-                DrawRectangle(x*40+399, y*40+50, 40, 40, board[y][x]);
+                DrawRectangle(x*40+399+1, y*40+50+1, 40-2, 40-2, board[y][x]);
             }
         }
 
@@ -248,7 +268,35 @@ void game_tetris() {
             if (playedSound==false){ PlaySfx(&gen, 680, 0.6f, 0.3f); playedSound=true; }
         }
 
+        EndTextureMode();
         EndDrawing();
+
+        float blurRadius=1.8f;
+        BeginTextureMode(blur1);
+        ClearBackground(BLANK);
+        BeginShaderMode(gaussianBlur);
+        SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, directionLoc, (float[2]){1.0f, 0.0f}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+        DrawTexturePro(scene.texture,
+            (Rectangle){0, 0, (float)scene.texture.width, (float)-scene.texture.height},
+            (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+            (Vector2){0,0}, 0.0f, WHITE);
+        EndShaderMode();
+        EndTextureMode();
+
+        BeginTextureMode(blur2);
+        ClearBackground(BLANK);
+        BeginShaderMode(gaussianBlur);
+        SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, directionLoc, (float[2]){0.0f, 1.0f}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+        DrawTexturePro(blur1.texture,
+            (Rectangle){0, 0, (float)blur1.texture.width, (float)-blur1.texture.height},
+            (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+            (Vector2){0,0}, 0.0f, WHITE);
+        EndShaderMode();
+        EndTextureMode();
 
         for (int i=0; i<10; i++) {
             if (!ColorEquals(board[0][i], BLANK)) {gameover=true;}
@@ -327,13 +375,29 @@ void game_tetris() {
         }
         if (hardDrop!=0) {current.y+=hardDrop; hardDrop=0;}
     }
+    UnloadRenderTexture(scene);
+    UnloadRenderTexture(bright);
+    UnloadRenderTexture(blur1);
+    UnloadRenderTexture(blur2);
+    UnloadShader(gaussianBlur);
     memset(board, 0, sizeof(board));
 }
 
 #define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0f)
 #define RAD_TO_DEG(rad) ((rad) * 180.0f / M_PI)
 typedef struct { float x; float y; float angle; } Ball;
-void game_pingpong() {
+void game_pingpong(void) {
+    int wWidth = 1200;
+    int wHeight = 900;
+    Shader gaussianBlur = LoadShader(0, "gaussian-blur.fs");
+    int resolutionLoc = GetShaderLocation(gaussianBlur, "resolution");
+    int directionLoc = GetShaderLocation(gaussianBlur, "direction");
+    int radiusLoc = GetShaderLocation(gaussianBlur, "blurRadius");
+    RenderTexture2D scene = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D bright = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur1 = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur2 = LoadRenderTexture(wWidth, wHeight);
+
     srand(time(NULL) + clock());
     Ball ball;
     float player_plate_x = 525.0f;
@@ -351,6 +415,14 @@ void game_pingpong() {
     bool playedSound = false;
     while (!WindowShouldClose()) {
         BeginDrawing();
+        DrawTexturePro(scene.texture,
+           (Rectangle){0,0, (float)scene.texture.width, (float)-scene.texture.height},
+           (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, WHITE);
+        DrawTexturePro(blur2.texture,
+                       (Rectangle){0,0, (float)blur2.texture.width, (float)-blur2.texture.height},
+                       (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, ColorAlpha(WHITE, 0.5f));
+
+        BeginTextureMode(scene);
         ClearBackground(BLACK);
 
         DrawRectangleLines(215, 50, 801, 801, WHITE);
@@ -448,13 +520,57 @@ void game_pingpong() {
             if (playedSound==false){ PlaySfx(&gen, 680, 0.6f, 0.3f); playedSound=true; }
         }
 
+        EndTextureMode();
         EndDrawing();
+
+        float blurRadius=3.8f;
+        BeginTextureMode(blur1);
+        ClearBackground(BLANK);
+        BeginShaderMode(gaussianBlur);
+        SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, directionLoc, (float[2]){1.0f, 0.0f}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+        DrawTexturePro(scene.texture,
+            (Rectangle){0, 0, (float)scene.texture.width, (float)-scene.texture.height},
+            (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+            (Vector2){0,0}, 0.0f, WHITE);
+        EndShaderMode();
+        EndTextureMode();
+
+        BeginTextureMode(blur2);
+        ClearBackground(BLANK);
+        BeginShaderMode(gaussianBlur);
+        SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, directionLoc, (float[2]){0.0f, 1.0f}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+        DrawTexturePro(blur1.texture,
+            (Rectangle){0, 0, (float)blur1.texture.width, (float)-blur1.texture.height},
+            (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+            (Vector2){0,0}, 0.0f, WHITE);
+        EndShaderMode();
+        EndTextureMode();
     }
+    UnloadRenderTexture(scene);
+    UnloadRenderTexture(bright);
+    UnloadRenderTexture(blur1);
+    UnloadRenderTexture(blur2);
+    UnloadShader(gaussianBlur);
 }
 
 typedef struct { int x; int y; } Point;
 #define MAX_LENGTH 400
-void game_snake() {
+void game_snake(void) {
+    int wWidth = 1200;
+    int wHeight = 900;
+    Shader gaussianBlur = LoadShader(0, "gaussian-blur.fs");
+    int resolutionLoc = GetShaderLocation(gaussianBlur, "resolution");
+    int directionLoc = GetShaderLocation(gaussianBlur, "direction");
+    int radiusLoc = GetShaderLocation(gaussianBlur, "blurRadius");
+    RenderTexture2D scene = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D bright = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur1 = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur2 = LoadRenderTexture(wWidth, wHeight);
+
     srand(time(NULL) + clock());
     Point snake[MAX_LENGTH];
     int snake_length = 3;
@@ -517,6 +633,14 @@ void game_snake() {
         }
 
         BeginDrawing();
+        DrawTexturePro(scene.texture,
+           (Rectangle){0,0, (float)scene.texture.width, (float)-scene.texture.height},
+           (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, WHITE);
+        DrawTexturePro(blur2.texture,
+                       (Rectangle){0,0, (float)blur2.texture.width, (float)-blur2.texture.height},
+                       (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, ColorAlpha(WHITE, 0.13f));
+
+        BeginTextureMode(scene);
         ClearBackground(BLACK);
 
         Vector2 square_position = {215.0f,50.0f};
@@ -599,18 +723,61 @@ void game_snake() {
             }
         }
 
+        EndTextureMode();
         EndDrawing();
+
+        float blurRadius=4.0f;
+        BeginTextureMode(blur1);
+        ClearBackground(BLANK);
+        BeginShaderMode(gaussianBlur);
+        SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, directionLoc, (float[2]){1.0f, 0.0f}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+        DrawTexturePro(scene.texture,
+            (Rectangle){0, 0, (float)scene.texture.width, (float)-scene.texture.height},
+            (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+            (Vector2){0,0}, 0.0f, WHITE);
+        EndShaderMode();
+        EndTextureMode();
+
+        BeginTextureMode(blur2);
+        ClearBackground(BLANK);
+        BeginShaderMode(gaussianBlur);
+        SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, directionLoc, (float[2]){0.0f, 1.0f}, SHADER_UNIFORM_VEC2);
+        SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+        DrawTexturePro(blur1.texture,
+            (Rectangle){0, 0, (float)blur1.texture.width, (float)-blur1.texture.height},
+            (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+            (Vector2){0,0}, 0.0f, WHITE);
+        EndShaderMode();
+        EndTextureMode();
     }
+    UnloadRenderTexture(scene);
+    UnloadRenderTexture(bright);
+    UnloadRenderTexture(blur1);
+    UnloadRenderTexture(blur2);
+    UnloadShader(gaussianBlur);
 }
 
 int main(void) {
     int wWidth = 1200;
     int wHeight = 900;
     SetConfigFlags(FLAG_VSYNC_HINT);
-    InitWindow(wWidth, wHeight, "Games 4.0");
+    InitWindow(wWidth, wHeight, "Games 4.0 (SHADER VERSION)");
+    Shader gaussianBlur = LoadShader(0, "gaussian-blur.fs");
     InitAudioDevice();
     SetTargetFPS(60);
     Font dFont = GetFontDefault();
+
+    int resolutionLoc = GetShaderLocation(gaussianBlur, "resolution");
+    int directionLoc = GetShaderLocation(gaussianBlur, "direction");
+    int radiusLoc = GetShaderLocation(gaussianBlur, "blurRadius");
+
+    RenderTexture2D scene = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D bright = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur1 = LoadRenderTexture(wWidth, wHeight);
+    RenderTexture2D blur2 = LoadRenderTexture(wWidth, wHeight);
 
     char topText[] = "Choose a game:";
     int ttSize = 70;
@@ -644,6 +811,14 @@ int main(void) {
         int g3tY = wHeight*2/3 - (int)g3tMeasure.y/2;
 
         BeginDrawing();
+        DrawTexturePro(scene.texture,
+           (Rectangle){0,0, (float)scene.texture.width, (float)-scene.texture.height},
+           (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, WHITE);
+        DrawTexturePro(blur2.texture,
+                       (Rectangle){0,0, (float)blur2.texture.width, (float)-blur2.texture.height},
+                       (Rectangle){0,0, (float)wWidth, (float)wHeight}, (Vector2){0,0}, 0.0f, ColorAlpha(WHITE, 0.8f));
+
+        BeginTextureMode(scene);
         ClearBackground(BLACK);
         DrawText(topText, ttX, ttY, ttSize, WHITE);
         DrawText(g1Text, g1tX, g1tY, g1tSize, WHITE);
@@ -652,6 +827,17 @@ int main(void) {
         DrawRectangleLines(g1tX-15, g1tY-15, 180, 60, selector==1 ? GREEN : WHITE);
         DrawRectangleLines(g2tX-45, g2tY-15, 180, 60, selector==2 ? GREEN : WHITE);
         DrawRectangleLines(g3tX-40, g3tY-15, 180, 60, selector==3 ? GREEN : WHITE);
+        if (drawSoon==true) {
+            char soon[] = "The game will be ready soon";
+            int sSize = 20;
+            Vector2 sMeasure = MeasureTextEx(dFont, soon, sSize, 2.0f);
+            int sX = (wWidth - (int)sMeasure.x) /2;
+            int sY = wHeight - (int)sMeasure.y;
+            DrawText(soon, sX, sY, sSize, WHITE);
+        }
+
+        DrawFPS(10,10);
+        EndTextureMode();
 
         if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) {
             PlaySfx(&gen, 1700, 0.2f, 0.03f);
@@ -669,29 +855,82 @@ int main(void) {
             PlaySfx(&gen, 1700, 0.2f, 0.03f);
             switch (selector) {
                 case 1:
+                    UnloadRenderTexture(scene);
+                    UnloadRenderTexture(bright);
+                    UnloadRenderTexture(blur1);
+                    UnloadRenderTexture(blur2);
+                    UnloadShader(gaussianBlur);
                     game_pingpong();
+                    gaussianBlur = LoadShader(0, "gaussian-blur.fs");
+                    scene = LoadRenderTexture(wWidth, wHeight);
+                    bright = LoadRenderTexture(wWidth, wHeight);
+                    blur1 = LoadRenderTexture(wWidth, wHeight);
+                    blur2 = LoadRenderTexture(wWidth, wHeight);
                     break;
                 case 2:
+                    UnloadRenderTexture(scene);
+                    UnloadRenderTexture(bright);
+                    UnloadRenderTexture(blur1);
+                    UnloadRenderTexture(blur2);
+                    UnloadShader(gaussianBlur);
                     game_snake();
+                    gaussianBlur = LoadShader(0, "gaussian-blur.fs");
+                    scene = LoadRenderTexture(wWidth, wHeight);
+                    bright = LoadRenderTexture(wWidth, wHeight);
+                    blur1 = LoadRenderTexture(wWidth, wHeight);
+                    blur2 = LoadRenderTexture(wWidth, wHeight);
                     break;
                 case 3:
+                    UnloadRenderTexture(scene);
+                    UnloadRenderTexture(bright);
+                    UnloadRenderTexture(blur1);
+                    UnloadRenderTexture(blur2);
+                    UnloadShader(gaussianBlur);
                     game_tetris();
+                    gaussianBlur = LoadShader(0, "gaussian-blur.fs");
+                    scene = LoadRenderTexture(wWidth, wHeight);
+                    bright = LoadRenderTexture(wWidth, wHeight);
+                    blur1 = LoadRenderTexture(wWidth, wHeight);
+                    blur2 = LoadRenderTexture(wWidth, wHeight);
                     break;
             }
         }
-        if (drawSoon==true) {
-            char soon[] = "The game will be ready soon";
-            int sSize = 20;
-            Vector2 sMeasure = MeasureTextEx(dFont, soon, sSize, 2.0f);
-            int sX = (wWidth - (int)sMeasure.x) /2;
-            int sY = wHeight - (int)sMeasure.y;
-            DrawText(soon, sX, sY, sSize, WHITE);
-        }
 
-        DrawFPS(10,10);
         EndDrawing();
+
+        float blurRadius=1.2f;
+        BeginTextureMode(blur1);
+            ClearBackground(BLANK);
+            BeginShaderMode(gaussianBlur);
+                SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+                SetShaderValue(gaussianBlur, directionLoc, (float[2]){1.0f, 0.0f}, SHADER_UNIFORM_VEC2);
+                SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+                DrawTexturePro(scene.texture,
+                    (Rectangle){0, 0, (float)scene.texture.width, (float)-scene.texture.height},
+                    (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+                    (Vector2){0,0}, 0.0f, WHITE);
+            EndShaderMode();
+        EndTextureMode();
+
+        BeginTextureMode(blur2);
+            ClearBackground(BLANK);
+            BeginShaderMode(gaussianBlur);
+                SetShaderValue(gaussianBlur, resolutionLoc, (float[2]){(float) wWidth, (float) wHeight}, SHADER_UNIFORM_VEC2);
+                SetShaderValue(gaussianBlur, directionLoc, (float[2]){0.0f, 1.0f}, SHADER_UNIFORM_VEC2);
+                SetShaderValue(gaussianBlur, radiusLoc, &blurRadius, SHADER_UNIFORM_FLOAT);
+                DrawTexturePro(blur1.texture,
+                    (Rectangle){0, 0, (float)blur1.texture.width, (float)-blur1.texture.height},
+                    (Rectangle){0, 0, (float)wWidth, (float)wHeight},
+                    (Vector2){0,0}, 0.0f, WHITE);
+            EndShaderMode();
+        EndTextureMode();
     }
 
+    UnloadRenderTexture(scene);
+    UnloadRenderTexture(bright);
+    UnloadRenderTexture(blur1);
+    UnloadRenderTexture(blur2);
+    UnloadShader(gaussianBlur);
     StopAudioStream(stream);
     UnloadAudioStream(stream);
     CloseAudioDevice();
