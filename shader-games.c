@@ -134,8 +134,8 @@ const int shapes[7][4][4][4] = {
     { //TETRO_I
         {{1,0,0,0}, {1,0,0,0}, {1,0,0,0}, {1,0,0,0}}, //0
         {{1,1,1,1}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}}, //90
-        {{1,0,0,0}, {1,0,0,0}, {1,0,0,0}, {1,0,0,0}}, //180
-        {{1,1,1,1}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}}  //270
+        {{0,0,0,1}, {0,0,0,1}, {0,0,0,1}, {0,0,0,1}}, //180
+        {{0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {1,1,1,1}}  //270
     },
     { //TETRO_O
         {{1,1,0,0}, {1,1,0,0}, {0,0,0,0}, {0,0,0,0}}, //0
@@ -217,7 +217,7 @@ void game_tetris(void) {
         if (init==false) {
             current.type = rand()%7;
             current.rotation = rand()%4;
-            current.x = 3;
+            current.x = 4;
             current.y = 0;
             srand(time(NULL) + clock());
             int randomColor = rand()%6;
@@ -305,6 +305,7 @@ void game_tetris(void) {
             if (CanPlace(current.x, current.y+1, current.rotation, current)) {
                 current.y+=1;
             } else {
+                score+=5;
                 //Lock piece
                 for (int i=0; i<4; i++) {
                     for (int j=0; j<4; j++) {
@@ -462,6 +463,7 @@ void game_pingpong(void) {
             float max_bounce_angle = 60.0f;
             float bounce_angle_deg = normalized_range * max_bounce_angle;
 
+            score+=5;
             ball.angle += bounce_angle_deg;
             PlaySfx(&gen, 321, 0.8f, 0.1f);
         }
