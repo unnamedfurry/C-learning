@@ -257,7 +257,6 @@ void game_tetris() {
             if (CanPlace(current.x, current.y+1, current.rotation, current)) {
                 current.y+=1;
             } else {
-                score+=5;
                 //Lock piece
                 for (int i=0; i<4; i++) {
                     for (int j=0; j<4; j++) {
@@ -294,7 +293,7 @@ void game_tetris() {
                     }
                 }
                 //Spawn new figure
-                init=false;
+                if (gameover!=true) {init=false; score+=5;}
             }
         }
         stepper++;
