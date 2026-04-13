@@ -591,8 +591,8 @@ void game_snake(void) {
     int snake_direction = -1;
     while (!WindowShouldClose()) {
         if (init!=true) {
-            int x = rand()%19;
-            int y = rand()%19;
+            int x = rand()%13+3;
+            int y = rand()%13+3;
             snake_direction = rand()%4;
             snake[0].x = x;
             snake[0].y = y;
