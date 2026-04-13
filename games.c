@@ -472,11 +472,12 @@ void game_snake() {
     bool gameover = false;
     int stepper = 0;
     bool playedSound = false;
+    int snake_direction = -1;
     while (!WindowShouldClose()) {
         if (init!=true) {
             int x = rand()%19;
             int y = rand()%19;
-            int snake_direction = rand()%4;
+            snake_direction = rand()%4;
             snake[0].x = x;
             snake[0].y = y;
             switch (snake_direction) {
@@ -535,6 +536,45 @@ void game_snake() {
         DrawRectangleLines(215, 50, 801, 801, WHITE);
 
         DrawCircle(appleX*(int)width+235, appleY*(int)height+70, 20, RED);
+        DrawCircle(appleX*(int)width+237, appleY*(int)height+66, 12, (Color){ 245, 55, 69, 255 });
+        Vector3 start = {(float)appleX*width+235, (float)appleY*height+56, 1.0f};
+        Vector3 end = {(float)appleX*width+240, (float)appleY*height+44, 1.0f};
+        DrawCapsule(start, end, 4, 1, 1, GREEN);
+
+        for (int i=0; i<snake_length; i++) {
+            if (snake[i].x <= -1 || snake[i].x >= 20 || snake[i].y <= -1 || snake[i].y >= 20) gameover=true;
+            DrawRectangle(snake[i].x*(int)width+215, snake[i].y*(int)height+50, (int)width, (int)height, i==0 ? BLUE : DARKBLUE);
+            if (i==0) {
+                switch (snake_direction+1) {
+                case 2:
+                    DrawCircle(snake[i].x*(int)width+246, snake[i].y*(int)height+60, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+246, snake[i].y*(int)height+80, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+249, snake[i].y*(int)height+60, 3, BLACK);
+                    DrawCircle(snake[i].x*(int)width+249, snake[i].y*(int)height+80, 3, BLACK);
+                    continue;
+                case 1:
+                    DrawCircle(snake[i].x*(int)width+226, snake[i].y*(int)height+80, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+226, snake[i].y*(int)height+60, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+223, snake[i].y*(int)height+80, 3, BLACK);
+                    DrawCircle(snake[i].x*(int)width+223, snake[i].y*(int)height+60, 3, BLACK);
+                    continue;
+                case 3:
+                    DrawCircle(snake[i].x*(int)width+226, snake[i].y*(int)height+60, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+246, snake[i].y*(int)height+60, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+226, snake[i].y*(int)height+57, 3, BLACK);
+                    DrawCircle(snake[i].x*(int)width+246, snake[i].y*(int)height+57, 3, BLACK);
+                    continue;
+                case 4:
+                    DrawCircle(snake[i].x*(int)width+226, snake[i].y*(int)height+80, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+246, snake[i].y*(int)height+80, 6, WHITE);
+                    DrawCircle(snake[i].x*(int)width+226, snake[i].y*(int)height+83, 3, BLACK);
+                    DrawCircle(snake[i].x*(int)width+246, snake[i].y*(int)height+83, 3, BLACK);
+                    continue;
+                }
+            } else {
+                DrawRectangleLines(snake[i].x*(int)width+215, snake[i].y*(int)height+50, (int)width, (int)height, CLITERAL(Color){ 0, 70, 160, 255 });
+            }
+        }
 
         if (stepper%15==0) {
             int last_pos_X = snake[snake_length-1].x;
@@ -569,11 +609,6 @@ void game_snake() {
         }
         stepper++;
 
-        for (int i=0; i<snake_length; i++) {
-            if (snake[i].x <= -1 || snake[i].x >= 20 || snake[i].y <= -1 || snake[i].y >= 20) gameover=true;
-            DrawRectangle(snake[i].x*(int)width+215, snake[i].y*(int)height+50, (int)width, (int)height, i==0 ? BLUE : DARKBLUE);
-        }
-
         if (gameover==true) {
             direction=0;
             Font dFont = GetFontDefault();
@@ -585,18 +620,22 @@ void game_snake() {
         } else {
             if ((IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D)) && direction != 2) {
                 direction = 1;
+                snake_direction = 1;
                 PlaySfx(&gen, 500, 0.4f, 0.03f);
             }
             if ((IsKeyPressed(KEY_LEFT)  || IsKeyPressed(KEY_A)) && direction != 1) {
                 direction = 2;
+                snake_direction = 0;
                 PlaySfx(&gen, 500, 0.4f, 0.03f);
             }
             if ((IsKeyPressed(KEY_UP)    || IsKeyPressed(KEY_W)) && direction != 4) {
                 direction = 3;
+                snake_direction = 2;
                 PlaySfx(&gen, 500, 0.4f, 0.03f);
             }
             if ((IsKeyPressed(KEY_DOWN)  || IsKeyPressed(KEY_S)) && direction != 3) {
                 direction = 4;
+                snake_direction = 3;
                 PlaySfx(&gen, 500, 0.4f, 0.03f);
             }
         }
