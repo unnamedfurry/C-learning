@@ -324,4 +324,17 @@ int main(int argc, char **argv) {
  * int max = 100;
  * int ranged_random_number = (rand() % (max - min + 1)) + min;
  * int ranged_random_number = rand() % 101
+ *
+ *
+ *
+ *  |         Task          |         Java          |                C               |
+ *  ----------------------------------------------------------------------------------
+ *  |  Read File            |  new File()           |  fopen()                       |
+ *  |  Close File           |  auto                 |  fclose()                      |
+ *  |  Read Text            |  Files.readString()   |  fgets(), fread(), getc()      |
+ *  |  Write Text           |  Files.writeString()  |  fprintf(). fputs(), fwrite()  |
+ *  |  R/W binary           |  FileInputStream      |  fread() / fwrite()            |
+ *  |  Check for existence  |  file.exists()        |  access(), stat()              |
+ *  |  Get size, time etc.  |  file.length() etc.   |  stat()                        |
+ *
  **/
